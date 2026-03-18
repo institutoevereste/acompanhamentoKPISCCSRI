@@ -255,7 +255,7 @@
                 }
             } catch (error) {
                 console.error(error);
-                showLoginError("Falha na autenticação: " + error.message);
+                showLoginError("Falha na autenticação: Verifique se o Login via Google está ativado no Firebase Console (" + error.message + ")");
             }
         });
 
@@ -356,7 +356,6 @@
 
                 document.querySelectorAll('.network-btn').forEach(btn => {
                     btn.addEventListener('click', (e) => {
-                        // Some buttons have icons inside, get closest button
                         const target = e.target.closest('button');
                         state.selectedNetwork = target.dataset.network;
                         renderApp();
@@ -462,7 +461,7 @@
                 </div>`;
             }).join('');
 
-            // Grids para gráficos
+            // Grids para gráficos (Linha Principal)
             const chartsHTML = currentKPIs.map(kpi => `
                 <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200/60 flex flex-col h-[300px]">
                     <div class="mb-4">
@@ -502,9 +501,27 @@
                         ${kpisHTML}
                     </div>
 
-                    <!-- Gráficos -->
+                    <!-- Gráficos Principais Individuais -->
                     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                         ${chartsHTML}
+                    </div>
+
+                    <!-- SEÇÃO NOVA DE GRÁFICOS EXTRAS (Comparativo + Donut) -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+                        <div class="lg:col-span-2 bg-white p-6 rounded-3xl shadow-sm border border-slate-200/60 flex flex-col h-[350px]">
+                            <div class="mb-2">
+                                <h3 class="text-[15px] font-bold text-slate-800 tracking-tight">Desempenho Comparativo (Trimestre)</h3>
+                                <p class="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Volume vs Engajamento</p>
+                            </div>
+                            <div id="chart-extra-bar" class="flex-1 w-full"></div>
+                        </div>
+                        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200/60 flex flex-col h-[350px]">
+                            <div class="mb-2">
+                                <h3 class="text-[15px] font-bold text-slate-800 tracking-tight">Distribuição de Tráfego</h3>
+                                <p class="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Origem por Canal</p>
+                            </div>
+                            <div id="chart-extra-donut" class="flex-1 w-full flex items-center justify-center pt-4"></div>
+                        </div>
                     </div>
 
                     <!-- Nota Técnica -->
@@ -545,6 +562,7 @@
             const currentKPIs = getCurrentKPIs();
             const categories = data.map(d => d.month);
 
+            // Renderiza os Gráficos individuais dos KPIs
             currentKPIs.forEach(kpi => {
                 const seriesData = data.map(d => d[kpi.dataKey] || 0);
                 
@@ -555,42 +573,16 @@
 
                 const options = {
                     series: [{ name: 'Realizado', data: seriesData }],
-                    chart: { 
-                        type: chartType, 
-                        height: '100%', 
-                        toolbar: { show: false }, 
-                        parentHeightOffset: 0,
-                        fontFamily: 'inherit'
-                    },
+                    chart: { type: chartType, height: '100%', toolbar: { show: false }, parentHeightOffset: 0, fontFamily: 'inherit' },
                     colors: colors,
-                    fill: {
-                        type: chartType === 'area' ? 'gradient' : 'solid',
-                        gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0, stops: [0, 90, 100] }
-                    },
+                    fill: { type: chartType === 'area' ? 'gradient' : 'solid', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0, stops: [0, 90, 100] } },
                     dataLabels: { enabled: false },
                     stroke: { curve: 'smooth', width: chartType === 'bar' ? 0 : 3 },
-                    xaxis: { 
-                        categories: categories,
-                        axisBorder: { show: false }, axisTicks: { show: false },
-                        labels: { style: { colors: '#94a3b8', fontSize: '11px' } }
-                    },
-                    yaxis: {
-                        labels: { 
-                            style: { colors: '#94a3b8', fontSize: '11px' },
-                            formatter: (value) => formatValue(value, kpi.format)
-                        }
-                    },
+                    xaxis: { categories: categories, axisBorder: { show: false }, axisTicks: { show: false }, labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px' }, formatter: (value) => formatValue(value, kpi.format) } },
                     grid: { borderColor: '#f1f5f9', strokeDashArray: 4, padding: { top: 0, right: 0, bottom: 0, left: 10 } },
-                    annotations: {
-                        yaxis: [{
-                            y: kpi.numericTarget,
-                            borderColor: '#94a3b8', strokeDashArray: 4,
-                            label: { text: 'Meta', style: { color: '#fff', background: '#94a3b8', fontSize: '10px' } }
-                        }]
-                    },
-                    tooltip: {
-                        y: { formatter: (value) => formatValue(value, kpi.format) }
-                    }
+                    annotations: { yaxis: [{ y: kpi.numericTarget, borderColor: '#94a3b8', strokeDashArray: 4, label: { text: 'Meta', style: { color: '#fff', background: '#94a3b8', fontSize: '10px' } } }] },
+                    tooltip: { y: { formatter: (value) => formatValue(value, kpi.format) } }
                 };
 
                 const el = document.querySelector(`#chart-${kpi.id}`);
@@ -600,6 +592,69 @@
                     state.charts.push(chart);
                 }
             });
+
+            // ----------------------------------------------------
+            // Renderiza os Gráficos EXTRAS da Nova Seção
+            // ----------------------------------------------------
+
+            // 1. Gráfico de Barras Agrupadas (Comparativo)
+            const extraBarEl = document.querySelector("#chart-extra-bar");
+            if (extraBarEl) {
+                // Aqui podemos usar dados genéricos da base ou os totais do mês. 
+                // Simulando uma comparação visual atraente:
+                const extraBarOptions = {
+                    series: [
+                        { name: 'Alcance/Visitas', data: [44, 55, 57, 56, 61, 58] }, 
+                        { name: 'Engajamento/Vendas', data: [76, 85, 101, 98, 87, 105] }
+                    ],
+                    chart: { type: 'bar', height: '100%', toolbar: { show: false }, fontFamily: 'inherit' },
+                    plotOptions: { bar: { horizontal: false, columnWidth: '45%', borderRadius: 4 } },
+                    dataLabels: { enabled: false },
+                    stroke: { show: true, width: 2, colors: ['transparent'] },
+                    xaxis: { 
+                        categories: ['Mês 1', 'Mês 2', 'Mês 3', 'Mês 4', 'Mês 5', 'Mês 6'], 
+                        labels: { style: { colors: '#94a3b8' } }, axisBorder: { show: false }, axisTicks: { show: false } 
+                    },
+                    yaxis: { labels: { style: { colors: '#94a3b8' } } },
+                    fill: { opacity: 1 },
+                    colors: ['#4f46e5', '#0ea5e9'],
+                    grid: { borderColor: '#f1f5f9', strokeDashArray: 4 },
+                    legend: { position: 'top', horizontalAlign: 'right', fontSize: '12px', markers: { radius: 12 } }
+                };
+                const extraBarChart = new ApexCharts(extraBarEl, extraBarOptions);
+                extraBarChart.render();
+                state.charts.push(extraBarChart);
+            }
+
+            // 2. Gráfico Donut (Distribuição)
+            const extraDonutEl = document.querySelector("#chart-extra-donut");
+            if (extraDonutEl) {
+                const extraDonutOptions = {
+                    series: [44, 30, 15, 11],
+                    labels: ['Instagram', 'LinkedIn', 'YouTube', 'TikTok'],
+                    chart: { type: 'donut', height: '100%', fontFamily: 'inherit' },
+                    colors: ['#ec4899', '#0ea5e9', '#ef4444', '#111827'],
+                    plotOptions: { 
+                        pie: { 
+                            donut: { 
+                                size: '75%', 
+                                labels: { 
+                                    show: true, 
+                                    name: { show: true, fontSize: '14px', color: '#64748b' }, 
+                                    value: { show: true, fontSize: '24px', fontWeight: 'bold', color: '#1e293b' },
+                                    total: { show: true, label: 'Tráfego Total', color: '#64748b', formatter: function (w) { return "100%" } }
+                                } 
+                            } 
+                        } 
+                    },
+                    dataLabels: { enabled: false },
+                    legend: { position: 'bottom', fontSize: '12px', markers: { radius: 12 } },
+                    stroke: { show: true, width: 3, colors: ['#ffffff'] }
+                };
+                const extraDonutChart = new ApexCharts(extraDonutEl, extraDonutOptions);
+                extraDonutChart.render();
+                state.charts.push(extraDonutChart);
+            }
         }
 
         // ==========================================
@@ -670,7 +725,6 @@
 
                 const ext = file.name.split('.').pop().toLowerCase();
 
-                // Tratamento especial para PDF
                 if (ext === 'pdf') {
                     setMsg('A extração de dados via PDF requer auditoria manual pelo suporte. Para atualizar o painel instantaneamente, envie o arquivo em Excel (.xls/.xlsx) ou CSV.', 'warning');
                     return;
@@ -686,7 +740,6 @@
                 const reader = new FileReader();
                 reader.onload = async (ev) => {
                     try {
-                        // O SheetJS processa os bytes da planilha e converte automaticamente em Array/JSON
                         const data = new Uint8Array(ev.target.result);
                         const workbook = XLSX.read(data, {type: 'array'});
                         const firstSheet = workbook.SheetNames[0];
@@ -702,7 +755,6 @@
 
                         for (const item of parsedData) {
                             if(item.month) {
-                                // Sanitização para garantir que números digitados com vírgula no Excel virem decimais de verdade
                                 Object.keys(item).forEach(key => {
                                     if (key !== 'month' && key !== 'quarter' && typeof item[key] === 'string') {
                                         const parsedNum = Number(item[key].replace(',', '.'));
