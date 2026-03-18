@@ -1,836 +1,734 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-PT">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Evereste Academy - A sua escalada para o topo</title>
+    <title>Painel de Inteligência CCSRI - Instituto Evereste</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- React & ReactDOM -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    
-    <!-- Babel (para JSX) -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-
-    <!-- Configuração Tailwind -->
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                    colors: {
-                        slate: {
-                            750: '#2d3748', // Cor customizada para hover
-                            850: '#1a202c',
-                            950: '#020617',
-                        }
-                    },
-                    animation: {
-                        'fade-in-down': 'fadeInDown 0.5s ease-out',
-                        'bounce-slow': 'bounce 3s infinite',
-                    },
-                    keyframes: {
-                        fadeInDown: {
-                            '0%': { opacity: '0', transform: 'translateY(-10px)' },
-                            '100%': { opacity: '1', transform: 'translateY(0)' },
-                        }
-                    }
-                }
-            }
-        }
-    </script>
     
+    <!-- ApexCharts -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+    <!-- SheetJS (Excel e CSV Parser) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
     <style>
-        /* Suavização de rolagem */
-        html { scroll-behavior: smooth; }
-        body { -webkit-font-smoothing: antialiased; }
+        /* Ocultar barra de rolagem mas permitir o scroll */
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
-<body class="bg-slate-900 text-slate-100">
-    <div id="root"></div>
+<body class="bg-slate-50 font-sans text-slate-800 selection:bg-blue-100 h-screen overflow-hidden">
 
-    <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+    <!-- TELA DE LOGIN -->
+    <div id="login-screen" class="fixed inset-0 bg-slate-900 z-50 flex flex-col items-center justify-center p-4">
+        <div class="bg-white p-8 md:p-10 rounded-3xl shadow-2xl max-w-md w-full text-center relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
+            
+            <div class="w-20 h-20 mx-auto bg-slate-50 rounded-2xl flex items-center justify-center mb-6 shadow-inner border border-slate-100">
+                <i data-lucide="activity" class="text-indigo-600 w-10 h-10"></i>
+            </div>
+            
+            <h1 class="text-2xl font-black text-slate-800 tracking-tight">Instituto Evereste</h1>
+            <p class="text-sm text-slate-500 mt-2 mb-8 font-medium">CCSRI Data - Acesso Restrito</p>
+            
+            <div id="login-error" class="hidden mb-6 p-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl font-medium text-left">
+                <!-- Erro entra aqui -->
+            </div>
 
-        // --- Componente Utilitário para Ícones Lucide ---
-        const LucideIcon = ({ name, size = 24, className = "", ...props }) => {
-            const iconRef = useRef(null);
+            <button id="btn-login" class="w-full flex items-center justify-center gap-3 bg-white border border-slate-300 text-slate-700 font-bold py-3 px-4 rounded-xl hover:bg-slate-50 hover:shadow-md transition-all">
+                <svg viewBox="0 0 24 24" class="w-5 h-5" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                Continuar com Google
+            </button>
+            <p class="text-xs text-slate-400 mt-6">Login exclusivo para domínios <span class="font-bold">@evereste.org.br</span></p>
+        </div>
+    </div>
 
-            useEffect(() => {
-                if (window.lucide && iconRef.current) {
-                    const { icons, createElement } = window.lucide;
-                    const iconNode = icons[name];
-
-                    if (iconNode && createElement) {
-                        iconRef.current.innerHTML = '';
-                        const svgElement = createElement(iconNode);
-                        svgElement.setAttribute('width', size);
-                        svgElement.setAttribute('height', size);
-                        if (className) {
-                            const currentClass = svgElement.getAttribute('class') || '';
-                            svgElement.setAttribute('class', `${currentClass} ${className}`.trim());
-                        }
-                        Object.keys(props).forEach(key => {
-                            svgElement.setAttribute(key, props[key]);
-                        });
-                        iconRef.current.appendChild(svgElement);
-                    }
-                }
-            }, [name, size, className, props]);
-
-            return <span ref={iconRef} className="inline-flex items-center justify-center" />;
-        };
-
-        // --- Mapeamento de Ícones ---
-        const Menu = (props) => <LucideIcon name="Menu" {...props} />;
-        const X = (props) => <LucideIcon name="X" {...props} />;
-        const ChevronRight = (props) => <LucideIcon name="ChevronRight" {...props} />;
-        const ChevronDown = (props) => <LucideIcon name="ChevronDown" {...props} />;
-        const Code = (props) => <LucideIcon name="Code" {...props} />;
-        const Terminal = (props) => <LucideIcon name="Terminal" {...props} />;
-        const Database = (props) => <LucideIcon name="Database" {...props} />;
-        const Smartphone = (props) => <LucideIcon name="Smartphone" {...props} />;
-        const Layout = (props) => <LucideIcon name="Layout" {...props} />;
-        const Briefcase = (props) => <LucideIcon name="Briefcase" {...props} />;
-        const CheckCircle = (props) => <LucideIcon name="CheckCircle" {...props} />;
-        const ArrowRight = (props) => <LucideIcon name="ArrowRight" {...props} />;
-        const Video = (props) => <LucideIcon name="Video" {...props} />;
-        const Users = (props) => <LucideIcon name="Users" {...props} />;
-        const Linkedin = (props) => <LucideIcon name="Linkedin" {...props} />;
-        const Building2 = (props) => <LucideIcon name="Building2" {...props} />;
-        const MonitorPlay = (props) => <LucideIcon name="MonitorPlay" {...props} />;
-        const Layers = (props) => <LucideIcon name="Layers" {...props} />;
-        const Trophy = (props) => <LucideIcon name="Trophy" {...props} />;
-        const Calendar = (props) => <LucideIcon name="Calendar" {...props} />;
-        const LineChart = (props) => <LucideIcon name="LineChart" {...props} />;
-        const Megaphone = (props) => <LucideIcon name="Megaphone" {...props} />;
-        const Lightbulb = (props) => <LucideIcon name="Lightbulb" {...props} />;
-        const Truck = (props) => <LucideIcon name="Truck" {...props} />;
-        const Handshake = (props) => <LucideIcon name="Handshake" {...props} />;
-        const MessageCircle = (props) => <LucideIcon name="MessageCircle" {...props} />;
-        const Mountain = (props) => <LucideIcon name="Mountain" {...props} />; // Ícone para o FAQ
-
-        // --- Hooks & Componentes de Animação ---
-        const useOnScreen = (ref, rootMargin = "0px") => {
-            const [isIntersecting, setIntersecting] = useState(false);
-            useEffect(() => {
-                const observer = new IntersectionObserver(
-                    ([entry]) => setIntersecting(entry.isIntersecting),
-                    { rootMargin, threshold: 0.1 }
-                );
-                if (ref.current) observer.observe(ref.current);
-                return () => ref.current && observer.unobserve(ref.current);
-            }, [ref, rootMargin]);
-            return isIntersecting;
-        };
-
-        const FadeIn = ({ children, delay = 0, className = "" }) => {
-            const ref = useRef();
-            const onScreen = useOnScreen(ref, "-50px");
-            return (
-                <div
-                ref={ref}
-                className={`transition-all duration-1000 ease-out transform ${
-                    onScreen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
-                } ${className}`}
-                style={{ transitionDelay: `${delay}ms` }}
-                >
-                {children}
+    <!-- TELA PRINCIPAL (APP) -->
+    <div id="app-screen" class="hidden flex h-screen">
+        
+        <!-- SIDEBAR -->
+        <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col transition-all duration-300 shadow-2xl z-20">
+            <div class="h-20 flex items-center gap-3 px-6 border-b border-slate-800/50">
+                <div class="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+                    <i data-lucide="activity" class="text-white w-5 h-5"></i>
                 </div>
-            );
+                <div>
+                    <h1 class="text-white font-bold text-[15px] tracking-wide">Inst. Evereste</h1>
+                    <p class="text-[11px] text-slate-400 uppercase tracking-widest mt-0.5">CCSRI Data</p>
+                </div>
+            </div>
+            
+            <div class="px-4 py-6">
+                <p class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-3 px-2">Menu Principal</p>
+                <nav class="space-y-1.5" id="nav-menu">
+                    <!-- Gerado pelo JS -->
+                </nav>
+            </div>
+            
+            <div class="mt-auto p-5">
+                <div class="flex items-center gap-3 px-4 py-3 bg-slate-800/50 rounded-xl border border-slate-700/50">
+                    <img id="user-avatar" src="" alt="User" class="w-8 h-8 rounded-full bg-slate-700">
+                    <div class="overflow-hidden">
+                        <p id="user-name" class="text-xs font-bold text-white truncate"></p>
+                        <button id="btn-logout" class="text-[10px] text-red-400 hover:text-red-300 uppercase tracking-wider font-semibold">Sair</button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- CONTEÚDO -->
+        <main class="flex-1 flex flex-col overflow-hidden relative">
+            <!-- CABEÇALHO -->
+            <header class="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200/60 flex items-center justify-between px-8 z-10 sticky top-0">
+                <div>
+                    <h2 id="header-title" class="text-xl font-bold text-slate-800 tracking-tight">Painel de Desempenho</h2>
+                    <div class="text-sm mt-0.5 flex items-center gap-2">
+                        <span id="db-status-icon" class="w-2 h-2 rounded-full bg-slate-300"></span>
+                        <span id="db-status-text" class="text-slate-500">Inicializando...</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- ÁREA DE ROLAGEM -->
+            <div id="main-content" class="flex-1 overflow-auto p-6 md:p-8">
+                <!-- Conteúdo Injetado via JS -->
+            </div>
+        </main>
+    </div>
+
+    <!-- SCRIPT PRINCIPAL: FIREBASE + LÓGICA DE NEGÓCIO -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // ==========================================
+        // CONFIGURAÇÃO FIREBASE E ESTADO GLOBAL
+        // ==========================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyCIdjGR-GYaPLpVe1KHKPH2B00EPsw926E",
+            authDomain: "acompanhamentokpisccsri.firebaseapp.com",
+            projectId: "acompanhamentokpisccsri",
+            storageBucket: "acompanhamentokpisccsri.firebasestorage.app",
+            messagingSenderId: "113426067945",
+            appId: "1:113426067945:web:85de94f89bacc7b6a25b78",
+            measurementId: "G-PGB5VJFVFC"
         };
 
-        // --- Componentes da Interface ---
-        const Button = ({ children, variant = 'primary', className = '', ...props }) => {
-            const baseStyle = "font-bold rounded-full transition-all duration-300 transform hover:-translate-y-1 px-8 py-3 flex items-center justify-center gap-2 cursor-pointer";
-            const variants = {
-                primary: "bg-cyan-500 hover:bg-cyan-400 text-slate-900 shadow-lg shadow-cyan-500/30",
-                secondary: "bg-transparent border-2 border-slate-600 hover:border-white text-white",
-                white: "bg-white text-slate-900 hover:bg-slate-200",
-                outline: "border border-cyan-500 text-cyan-400 hover:bg-cyan-950",
-                glow: "bg-gradient-to-r from-red-600 to-red-500 text-white shadow-lg shadow-red-500/50 hover:shadow-red-500/70 border border-red-400"
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = 'dashboard-evereste';
+
+        let state = {
+            activeTab: 'dashboard',
+            selectedArea: 'global',
+            selectedNetwork: 'instagram',
+            timeRange: 'Q1',
+            user: null,
+            firebaseData: [],
+            charts: [] // Guarda as instâncias do ApexCharts
+        };
+
+        // Dados de Fallback (Mock)
+        const fallbackMonthlyData = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'].map((m, i) => {
+            return {
+                month: m, quarter: i < 3 ? 'Q1' : i < 6 ? 'Q2' : i < 9 ? 'Q3' : 'Q4', timestamp: i + 1,
+                g_alc: 1000000 + (i * 45000), g_cpm: 4.5 - (i * 0.1), g_views: 2000 + (i * 150), g_evt: 1 + (i % 2),
+                ig_cpm: 8.0 - (i * 0.35), ig_er: 2.0 + (i * 1.1), ig_ctr: 1.88 - (i * 0.05), ig_alc: 500000 + (i * 15000), ig_iec: 6250 + (i * 350), ig_cps: 4.0 - (i * 0.15),
+                li_cpc: 40 - (i * 3), li_cpm: 15 - (i * 0.2), li_foll: 100 + (i * 20), li_er: 3.0 + (i * 0.1),
+                yt_pmv: 40 + (i * 1.2), yt_vvr: 10000 + (i * 500), yt_subs: 50 + (i * 10), yt_imp: 80000 + (i * 2000),
+                tk_tv: 30000 + (i * 2500), tk_er: 5.0 + (i * 0.5), tk_share: 500 + (i * 30), tk_cpv: 0.05 - (i * 0.003),
+                jor_mat: 2 + (i % 2), jor_views: 100 + (i * 40), jor_ret: 40.0 - (i * 0.6), jor_clicks: 1000 + (i * 20),
+                soc_res: 0, soc_colab: 0, soc_cap: 0, soc_proj: 0,
+                evt_sat: 85 + (i * 0.8), evt_real: 0 + (i % 2), evt_part: 70 + (i * 5), evt_custo: 50 - (i * 0.4),
             };
-            return (
-                <button className={`${baseStyle} ${variants[variant]} ${className}`} {...props}>
-                {children}
-                </button>
-            );
+        });
+
+        // Utilitários de Formatação
+        const formatNumber = (num) => new Intl.NumberFormat('pt-BR', { notation: "compact", compactDisplay: "short" }).format(num || 0);
+        const formatCurrency = (num) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(num || 0);
+        const formatPercent = (num) => `${Number(num || 0).toFixed(1).replace('.', ',')}%`;
+        
+        const formatValue = (val, type) => {
+            if (type === 'currency') return formatCurrency(val);
+            if (type === 'percent') return formatPercent(val);
+            return formatNumber(val);
         };
 
-        const SectionHeading = ({ pre, title, subtitle, align = 'center' }) => (
-            <div className={`mb-12 ${align === 'center' ? 'text-center' : 'text-left'}`}>
-                {pre && <span className="text-cyan-400 font-bold uppercase tracking-wider text-sm mb-2 block">{pre}</span>}
-                <h2 className="text-3xl md:text-5xl font-extrabold text-white mb-4 leading-tight">
-                {title}
-                </h2>
-                {subtitle && <p className="text-slate-400 text-lg md:text-xl max-w-2xl mx-auto">{subtitle}</p>}
-            </div>
-        );
-
-        const FAQItem = ({ number, question, answer, isOpen, onClick }) => {
-            return (
-                <div className="border-b border-cyan-500/30 last:border-0">
-                    <button 
-                        className="w-full py-6 flex items-center justify-between text-left focus:outline-none group"
-                        onClick={onClick}
-                    >
-                        <div className="flex items-center gap-4">
-                            <span className="text-xl font-bold text-slate-900 dark:text-cyan-400 opacity-60 group-hover:opacity-100 transition-opacity">
-                                {number} .
-                            </span>
-                            <span className="text-lg font-bold text-slate-800 dark:text-white group-hover:text-cyan-400 transition-colors">
-                                {question}
-                            </span>
-                        </div>
-                        <div className={`transform transition-transform duration-300 text-cyan-500 ${isOpen ? 'rotate-180' : ''}`}>
-                            <ChevronDown size={24} />
-                        </div>
-                    </button>
-                    <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-48 opacity-100 pb-6' : 'max-h-0 opacity-0'}`}>
-                        <p className="text-slate-600 dark:text-slate-400 pl-12 pr-4 leading-relaxed">
-                            {answer}
-                        </p>
-                    </div>
-                </div>
-            );
+        // Definição Master de KPIs
+        const kpiDataByArea = {
+            global: [
+                { id: 'g1', title: "Alcance Total (Acumulado)", target: formatNumber(1400000), trend: "+26%", isPositive: true, status: "green", iconName: "users", dataKey: "g_alc", chartType: "area", format: "number", numericTarget: 1400000 },
+                { id: 'g2', title: "Custo M. Impressões (CPM)", target: formatCurrency(4.00), trend: "-18%", isPositive: true, status: "green", iconName: "target", inverseLogic: true, dataKey: "g_cpm", chartType: "line", format: "currency", numericTarget: 4.00 },
+                { id: 'g3', title: "Visualizações Jornalismo", target: formatNumber(3000), trend: "+12%", isPositive: false, status: "yellow", iconName: "layout-dashboard", dataKey: "g_views", chartType: "bar", format: "number", numericTarget: 3000 },
+                { id: 'g4', title: "Eventos Realizados", target: "12", trend: "-58%", isPositive: false, status: "red", iconName: "calendar-days", dataKey: "g_evt", chartType: "bar", format: "number", numericTarget: 12 },
+            ],
+            mkt: {
+                instagram: [
+                    { id: 'i1', title: "Custo Mil Impressões (CPM)", target: formatCurrency(8.00), trend: "-51%", isPositive: true, status: "green", iconName: "target", inverseLogic: true, dataKey: "ig_cpm", chartType: "line", format: "currency", numericTarget: 8.00 },
+                    { id: 'i2', title: "Taxa de Engajamento (ER)", target: "2,0%", trend: "+625%", isPositive: true, status: "green", iconName: "activity", dataKey: "ig_er", chartType: "bar", format: "percent", numericTarget: 2.0 },
+                    { id: 'i3', title: "Taxa de Cliques (CTR)", target: "1,88%", trend: "-40%", isPositive: false, status: "red", iconName: "mouse-pointer-click", dataKey: "ig_ctr", chartType: "line", format: "percent", numericTarget: 1.88 },
+                    { id: 'i4', title: "Alcance (ALC)", target: formatNumber(700000), trend: "-23%", isPositive: false, status: "red", iconName: "users", dataKey: "ig_alc", chartType: "area", format: "number", numericTarget: 700000 },
+                    { id: 'i5', title: "Eficiência Cobertura (IEC)", target: formatNumber(6250), trend: "+67%", isPositive: true, status: "green", iconName: "activity", dataKey: "ig_iec", chartType: "bar", format: "number", numericTarget: 6250 },
+                    { id: 'i6', title: "Custo p/ Seguidor (CPS)", target: formatCurrency(4.00), trend: "-39%", isPositive: true, status: "green", iconName: "users", inverseLogic: true, dataKey: "ig_cps", chartType: "line", format: "currency", numericTarget: 4.00 },
+                ],
+                linkedin: [
+                    { id: 'l1', title: "Custo por Clique (CPC)", target: formatCurrency(40.00), trend: "-97%", isPositive: true, status: "green", iconName: "mouse-pointer-click", inverseLogic: true, dataKey: "li_cpc", chartType: "line", format: "currency", numericTarget: 40.00 },
+                    { id: 'l2', title: "Custo Mil Impressões (CPM)", target: formatCurrency(15.00), trend: "-16%", isPositive: true, status: "green", iconName: "target", inverseLogic: true, dataKey: "li_cpm", chartType: "line", format: "currency", numericTarget: 15.00 },
+                    { id: 'l3', title: "Novos Seguidores", target: "500", trend: "-32%", isPositive: false, status: "yellow", iconName: "users", dataKey: "li_foll", chartType: "area", format: "number", numericTarget: 500 },
+                    { id: 'l4', title: "Taxa de Engajamento (ER)", target: "3,0%", trend: "+40%", isPositive: true, status: "green", iconName: "activity", dataKey: "li_er", chartType: "bar", format: "percent", numericTarget: 3.0 },
+                ],
+                youtube: [
+                    { id: 'y1', title: "Retenção de Vídeo (PMV)", target: "50%", trend: "-10%", isPositive: false, status: "yellow", iconName: "clock", dataKey: "yt_pmv", chartType: "area", format: "percent", numericTarget: 50 },
+                    { id: 'y2', title: "Visualizações (VVR)", target: formatNumber(10000), trend: "+25%", isPositive: true, status: "green", iconName: "youtube", dataKey: "yt_vvr", chartType: "bar", format: "number", numericTarget: 10000 },
+                    { id: 'y3', title: "Inscrições", target: "200", trend: "-40%", isPositive: false, status: "red", iconName: "users", dataKey: "yt_subs", chartType: "line", format: "number", numericTarget: 200 },
+                    { id: 'y4', title: "Impressões", target: formatNumber(100000), trend: "-15%", isPositive: false, status: "yellow", iconName: "target", dataKey: "yt_imp", chartType: "area", format: "number", numericTarget: 100000 },
+                ],
+                tiktok: [
+                    { id: 't1', title: "Total Visualizações (TV)", target: formatNumber(30000), trend: "+50%", isPositive: true, status: "green", iconName: "smartphone", dataKey: "tk_tv", chartType: "bar", format: "number", numericTarget: 30000 },
+                    { id: 't2', title: "Taxa de Engajamento (ER)", target: "5,0%", trend: "+70%", isPositive: true, status: "green", iconName: "activity", dataKey: "tk_er", chartType: "line", format: "percent", numericTarget: 5.0 },
+                    { id: 't3', title: "Compartilhamentos", target: "500", trend: "+78%", isPositive: true, status: "green", iconName: "file-text", dataKey: "tk_share", chartType: "area", format: "number", numericTarget: 500 },
+                    { id: 't4', title: "Custo por View (CPV)", target: formatCurrency(0.05), trend: "-60%", isPositive: true, status: "green", iconName: "target", inverseLogic: true, dataKey: "tk_cpv", chartType: "line", format: "currency", numericTarget: 0.05 },
+                ]
+            },
+            jor: [
+                { id: 'j1', title: "Matérias Publicadas", target: "6", trend: "-66%", isPositive: false, status: "red", iconName: "file-text", dataKey: "jor_mat", chartType: "bar", format: "number", numericTarget: 6 },
+                { id: 'j2', title: "Vis. por Matéria", target: "100", trend: "+366%", isPositive: true, status: "green", iconName: "users", dataKey: "jor_views", chartType: "area", format: "number", numericTarget: 100 },
+                { id: 'j3', title: "Retenção de Leitura", target: "40,0%", trend: "-18%", isPositive: false, status: "yellow", iconName: "clock", dataKey: "jor_ret", chartType: "line", format: "percent", numericTarget: 40.0 },
+                { id: 'j4', title: "Cliques no Portal", target: formatNumber(1000), trend: "+20%", isPositive: true, status: "green", iconName: "mouse-pointer-click", dataKey: "jor_clicks", chartType: "bar", format: "number", numericTarget: 1000 },
+            ],
+            socio: [
+                { id: 's1', title: "Resíduos Reciclados (kg)", target: "200", trend: "0%", isPositive: false, status: "yellow", iconName: "recycle", dataKey: "soc_res", chartType: "area", format: "number", numericTarget: 200 },
+                { id: 's2', title: "Colab. Capacitados", target: "70", trend: "0%", isPositive: false, status: "yellow", iconName: "users", dataKey: "soc_colab", chartType: "bar", format: "number", numericTarget: 70 },
+                { id: 's3', title: "Capacitação Comunidade", target: "150", trend: "0%", isPositive: false, status: "yellow", iconName: "graduation-cap", dataKey: "soc_cap", chartType: "line", format: "number", numericTarget: 150 },
+                { id: 's4', title: "Projetos Atendidos", target: "2", trend: "0%", isPositive: false, status: "yellow", iconName: "folder-heart", dataKey: "soc_proj", chartType: "bar", format: "number", numericTarget: 2 },
+            ],
+            evt: [
+                { id: 'e1', title: "Satisfação Geral", target: "85,0%", trend: "+10%", isPositive: true, status: "green", iconName: "smile", dataKey: "evt_sat", chartType: "area", format: "percent", numericTarget: 85.0 },
+                { id: 'e2', title: "Eventos Realizados", target: "32", trend: "-93%", isPositive: false, status: "red", iconName: "calendar-days", dataKey: "evt_real", chartType: "bar", format: "number", numericTarget: 32 },
+                { id: 'e3', title: "Taxa de Participação", target: "600", trend: "-88%", isPositive: false, status: "red", iconName: "users", dataKey: "evt_part", chartType: "line", format: "number", numericTarget: 600 },
+                { id: 'e4', title: "Custo por Participante", target: formatCurrency(50.00), trend: "-9%", isPositive: true, status: "green", iconName: "target", inverseLogic: true, dataKey: "evt_custo", chartType: "area", format: "currency", numericTarget: 50.00 },
+            ]
         };
 
-        const SchoolCard = ({ icon: Icon, title, courses, color }) => (
-            <div className="group relative p-6 h-full rounded-2xl bg-slate-800 border border-slate-700 hover:border-cyan-500/50 transition-all duration-300 hover:bg-slate-750 hover:shadow-xl hover:-translate-y-1 overflow-hidden cursor-pointer flex flex-col">
-                <div className={`absolute top-0 right-0 w-32 h-32 bg-${color}-500/5 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110`} />
-                <div className="relative z-10 flex flex-col h-full">
-                <div className={`w-14 h-14 rounded-lg bg-slate-900 flex items-center justify-center mb-6 text-${color}-400 group-hover:text-white transition-colors border border-slate-700 shadow-lg`}>
-                    <Icon size={28} />
-                </div>
-                <h3 className="text-2xl font-bold text-white mb-3">{title}</h3>
-                <p className="text-slate-400 text-sm mb-6 flex-grow leading-relaxed">
-                    {courses}
-                </p>
-                <div className="flex items-center text-cyan-400 text-sm font-bold group-hover:translate-x-2 transition-transform mt-auto">
-                    Ver cursos <ChevronRight size={16} />
-                </div>
-                </div>
-            </div>
-        );
+        const areasList = [
+            { id: 'global', name: 'Visão Global' },
+            { id: 'mkt', name: 'Marketing e Mídias' },
+            { id: 'jor', name: 'Jornalismo' },
+            { id: 'socio', name: 'Socioambiental' },
+            { id: 'evt', name: 'Eventos' },
+        ];
 
-        const JourneyCard = ({ title, steps, color }) => (
-            <div className="flex flex-col bg-slate-900 rounded-xl border border-slate-700 overflow-hidden hover:border-cyan-500 transition-colors group cursor-pointer h-full">
-                <div className={`h-2 w-full bg-${color}-500`} />
-                <div className="p-6 flex-grow">
-                <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Formação</div>
-                <h4 className="text-xl font-bold text-white mb-4 group-hover:text-cyan-400 transition-colors">{title}</h4>
-                <div className="space-y-3 relative">
-                    <div className="absolute left-[7px] top-2 bottom-2 w-[2px] bg-slate-800" />
-                    {steps.map((step, i) => (
-                    <div key={i} className="flex items-center gap-3 relative z-10">
-                        <div className={`w-4 h-4 rounded-full border-2 border-slate-700 bg-slate-900 group-hover:border-${color}-500 transition-colors`} />
-                        <span className="text-sm text-slate-400 group-hover:text-slate-300 transition-colors leading-tight">{step}</span>
-                    </div>
-                    ))}
-                </div>
-                </div>
-                <div className="bg-slate-800 p-3 text-center border-t border-slate-700 group-hover:bg-slate-750 transition-colors">
-                <span className="text-xs font-bold text-white uppercase flex items-center justify-center gap-1">
-                    Iniciar Jornada <ArrowRight size={12} />
-                </span>
-                </div>
-            </div>
-        );
+        // ==========================================
+        // LÓGICA DE AUTENTICAÇÃO (GOOGLE / DOMÍNIO)
+        // ==========================================
+        const loginScreen = document.getElementById('login-screen');
+        const appScreen = document.getElementById('app-screen');
+        const loginError = document.getElementById('login-error');
 
-        const InstructorCard = ({ name, role, bio, image }) => (
-            <div className="bg-slate-800 rounded-xl overflow-hidden border border-slate-700 hover:border-cyan-500 transition-all duration-300 hover:-translate-y-2 hover:shadow-cyan-900/20 hover:shadow-lg group h-full flex flex-col">
-                <div className="aspect-square bg-slate-700 relative overflow-hidden">
-                <img src={image} alt={name} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />
-                <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-slate-900 to-transparent p-4 pt-12">
-                    <a href="#" className="inline-flex items-center gap-1 text-cyan-400 text-sm font-bold hover:underline">
-                    <Linkedin size={16} /> Ver Perfil Completo
-                    </a>
-                </div>
-                </div>
-                <div className="p-6 flex flex-col flex-grow">
-                <h4 className="text-xl font-bold text-white mb-1">{name}</h4>
-                <p className="text-cyan-400 text-sm font-medium mb-4">{role}</p>
-                <p className="text-slate-300 text-sm leading-relaxed border-t border-slate-700 pt-4 flex-grow">
-                    {bio}
-                </p>
-                </div>
-            </div>
-        );
-
-        // --- Main App ---
-
-        function App() {
-            const [isMenuOpen, setIsMenuOpen] = useState(false);
-            const [openFAQ, setOpenFAQ] = useState(0);
-
-            const toggleFAQ = (index) => {
-                setOpenFAQ(openFAQ === index ? -1 : index);
-            };
-
-            const faqs = [
-                {
-                    question: "Como funciona o acesso aos cursos",
-                    answer: "Após a matrícula, você recebe acesso imediato à plataforma com login e senha personalizados. Todos os cursos ficam disponíveis 24/7 para estudar no seu ritmo."
-                },
-                {
-                    question: "Há certificação? Eles são reconhecidos?",
-                    answer: "Sim, ao concluir cada curso ou trilha, você recebe um certificado digital com código de validação, aceito em todo território nacional para comprovação de horas complementares e currículo."
-                },
-                {
-                    question: "Há suporte técnico disponível?",
-                    answer: "Com certeza. Dispomos de uma equipe de suporte dedicada via chat e e-mail para resolver qualquer dúvida técnica ou dificuldade de acesso à plataforma que você possa ter."
-                },
-                {
-                    question: "Há recursos de acessibilidade?",
-                    answer: "Sim, a plataforma foi desenvolvida com foco em inclusão. Contamos com legendas em todas as aulas, compatibilidade com leitores de tela e opções de alto contraste."
-                }
-            ];
-
-            const schools = [
-                { 
-                    icon: Users, // Representando Gestão/Liderança
-                    title: "Gestão & Liderança", 
-                    courses: "Liderança, Cultura Organizacional, Gestão por Competências, Planejamento Estratégico, Gestão da Inovação e Empreendedorismo.", 
-                    color: "blue" 
-                },
-                { 
-                    icon: Layers, // Representando Projetos/Processos
-                    title: "Projetos & Processos", 
-                    courses: "Gestão de Projetos (PMI/Ágil), Gestão de Riscos, Análise de Viabilidade, Cronograma, Custos e Logística Integrada.", 
-                    color: "green" 
-                },
-                { 
-                    icon: Megaphone, // Representando Marketing
-                    title: "Marketing & Vendas", 
-                    courses: "Branding, Gestão Comercial de Alta Performance, Customer Experience (CX), Gestão de Clientes e Marketing Pessoal.", 
-                    color: "purple" 
-                },
-                { 
-                    icon: LineChart, // Representando Finanças
-                    title: "Finanças & Contabilidade", 
-                    courses: "Contabilidade Financeira, Controladoria, Gestão de Custos, Auditoria, Day Trade e Investimentos na Bolsa.", 
-                    color: "yellow" 
-                },
-                { 
-                    icon: MonitorPlay, // Representando Tecnologia/Ferramentas
-                    title: "Tecnologia & Dados", 
-                    courses: "Microsoft Excel Avançado, Power BI, Business Intelligence, Gestão Estratégica de TI e Cultura Digital.", 
-                    color: "cyan" 
-                },
-                { 
-                    icon: Trophy, // Representando Carreira/Soft Skills
-                    title: "Carreira & Desenv. Humano", 
-                    courses: "Soft Skills, Inteligência Emocional, Comunicação, Negociação de Conflitos, Networking e Mercado de Trabalho.", 
-                    color: "orange" 
-                },
-            ];
-
-            const journeys = [
-                { 
-                    title: "Empreendedor de Sucesso", 
-                    steps: ["Introdução ao Empreendedorismo", "Elaboração de Plano de Negócios", "Gestão Financeira para Novos Negócios", "Estudo de Oportunidades"], 
-                    color: "blue" 
-                },
-                { 
-                    title: "Liderança Ágil 3.0", 
-                    steps: ["Fundamentos da Liderança", "Cultura Organizacional", "Gestão por Competências", "Retenção de Talentos"], 
-                    color: "green" 
-                },
-                { 
-                    title: "Expert em Dados & BI", 
-                    steps: ["Microsoft Excel Completo", "Conceitos de BI", "Power BI na Prática", "Análise de Indicadores"], 
-                    color: "cyan" 
-                },
-                { 
-                    title: "Gestão Comercial", 
-                    steps: ["Gestão da Carteira de Clientes", "Customer Experience", "Negociação e Conflitos", "Alta Performance em Vendas"], 
-                    color: "purple" 
-                }
-            ];
-
-            return (
-                <div className="min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-cyan-500 selection:text-slate-900 overflow-x-hidden">
-                
-                {/* Header Sticky */}
-                <header className="fixed w-full z-50 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 transition-all duration-300">
-                    <div className="container mx-auto px-6 h-20 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-cyan-500 rounded-tr-xl rounded-bl-xl flex items-center justify-center">
-                        <span className="font-bold text-slate-900 text-lg">E</span>
-                        </div>
-                        <span className="text-2xl font-extrabold tracking-tight text-white">
-                        Evereste<span className="text-cyan-400 font-light">Academy</span>
-                        </span>
-                    </div>
-
-                    <nav className="hidden md:flex gap-8 items-center text-sm font-medium text-slate-300">
-                        <a href="#escolas" className="hover:text-white transition-colors">Escolas</a>
-                        <a href="#jornadas" className="hover:text-white transition-colors">Jornadas</a>
-                        <a href="#aovivo" className="text-red-400 hover:text-red-300 transition-colors flex items-center gap-1 font-bold"><span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span> Ao Vivo</a>
-                        <a href="#faq" className="hover:text-white transition-colors">Dúvidas</a>
-                        <Button variant="outline" className="px-6 py-2 text-sm">Portal do Aluno</Button>
-                        <Button variant="primary" className="px-6 py-2 text-sm shadow-none hover:shadow-cyan-500/20">Matricule-se</Button>
-                    </nav>
-
-                    <button className="md:hidden text-white" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-                        {isMenuOpen ? <X /> : <Menu />}
-                    </button>
-                    </div>
-
-                    {/* Mobile Menu */}
-                    {isMenuOpen && (
-                    <div className="md:hidden absolute top-20 left-0 w-full bg-slate-900 border-b border-slate-800 p-6 flex flex-col gap-4 shadow-2xl animate-fade-in-down">
-                        <a href="#escolas" className="text-lg py-2 border-b border-slate-800">Escolas</a>
-                        <a href="#jornadas" className="text-lg py-2 border-b border-slate-800">Jornadas</a>
-                        <a href="#aovivo" className="text-lg py-2 border-b border-slate-800 text-red-400 font-bold">Aulas Ao Vivo</a>
-                        <Button variant="primary" className="w-full">Matricule-se Agora</Button>
-                    </div>
-                    )}
-                </header>
-
-                {/* Hero Section */}
-                <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
-                    <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-cyan-900/20 to-transparent pointer-events-none" />
-                    <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
-
-                    <div className="container mx-auto px-6 relative z-10 flex flex-col lg:flex-row items-center gap-12">
-                    <FadeIn className="lg:w-1/2 text-center lg:text-left">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-cyan-400 text-xs font-bold uppercase tracking-widest mb-6 hover:bg-slate-750 transition-colors cursor-default">
-                        <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
-                        Turmas abertas: Gestão & Projetos
-                        </div>
-                        <h1 className="text-5xl lg:text-7xl font-extrabold text-white mb-6 leading-[1.1]">
-                        A sua escalada para o <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">topo da sua carreira</span>.
-                        </h1>
-                        <p className="text-lg text-slate-400 mb-8 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
-                        Domine as habilidades mais exigidas pelo mercado, de Gestão e Liderança a Power BI e Finanças. Uma plataforma completa com <strong>aulas interativas</strong> e conteúdo 100% online.
-                        </p>
-                        <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                        <Button variant="primary" className="text-lg px-10 group">
-                            Começar agora <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-                        </Button>
-                        <Button variant="secondary" className="text-lg px-8">
-                            Ver Planos
-                        </Button>
-                        </div>
-                    </FadeIn>
-
-                    <FadeIn delay={200} className="lg:w-1/2 relative perspective-1000">
-                        <div className="relative rounded-2xl overflow-hidden border border-slate-700 shadow-2xl shadow-cyan-900/50 group transform transition-transform duration-700 hover:rotate-1">
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent z-10"></div>
-                        <div className="aspect-video bg-slate-800 flex items-center justify-center relative">
-                            <img 
-                            src="https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" 
-                            alt="Reunião de estratégia e negócios" 
-                            className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-1000"
-                            />
-                            <div className="absolute z-20 bottom-8 left-8 right-8">
-                                <div className="bg-slate-900/90 backdrop-blur border border-slate-700 p-4 rounded-xl flex items-center gap-4 shadow-xl">
-                                <div className="bg-blue-500/20 p-3 rounded-full text-blue-400 animate-bounce-slow">
-                                    <Layers size={24} />
-                                </div>
-                                <div>
-                                    <p className="text-xs text-slate-400 uppercase font-bold">Em Alta</p>
-                                    <p className="text-white font-bold">Kanban e Scrum</p>
-                                </div>
-                                <div className="ml-auto hidden sm:block">
-                                    <div className="h-2 w-24 bg-slate-700 rounded-full overflow-hidden">
-                                    <div className="h-full w-2/3 bg-cyan-400 rounded-full"></div>
-                                    </div>
-                                </div>
-                                </div>
-                            </div>
-                        </div>
-                        </div>
-                    </FadeIn>
-                    </div>
-                </section>
-
-                {/* Social Proof (Partners) */}
-                <section className="border-y border-slate-800 bg-slate-900/50 py-10">
-                    <FadeIn className="container mx-auto px-6">
-                    <p className="text-center text-slate-500 text-sm font-semibold uppercase tracking-widest mb-8">
-                        Metodologia aplicada por grandes players
-                    </p>
-                    <div className="flex flex-wrap justify-center gap-12 md:gap-20 opacity-60 grayscale hover:grayscale-0 transition-all duration-500 items-center">
-                        <div className="flex items-center gap-2 font-bold text-xl text-slate-300 hover:text-white transition-colors"><Building2 size={24} /> HOLDING S.A</div>
-                        <div className="flex items-center gap-2 font-bold text-xl text-slate-300 hover:text-white transition-colors"><Database size={24} /> FINTECH G</div>
-                        <div className="flex items-center gap-2 font-bold text-xl text-slate-300 hover:text-white transition-colors"><Truck size={24} /> LOGÍSTICA BR</div>
-                        <div className="flex items-center gap-2 font-bold text-xl text-slate-300 hover:text-white transition-colors"><Layout size={24} /> AGÊNCIA DIGITAL</div>
-                    </div>
-                    </FadeIn>
-                </section>
-
-                {/* Escolas (Categorias Macro) */}
-                <section id="escolas" className="py-24 bg-slate-900 relative">
-                    <div className="container mx-auto px-6">
-                    <FadeIn>
-                        <SectionHeading 
-                        pre="Nossas Áreas de Conhecimento"
-                        title="Formações completas para sua evolução"
-                        subtitle="Explore nossas escolas e encontre o conteúdo ideal para o seu momento profissional."
-                        />
-                    </FadeIn>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {schools.map((school, idx) => (
-                        <FadeIn key={idx} delay={idx * 100}>
-                            <SchoolCard {...school} />
-                        </FadeIn>
-                        ))}
-                    </div>
-                    </div>
-                </section>
-
-                {/* Jornadas (Formações Específicas) */}
-                <section id="jornadas" className="py-24 bg-slate-800 relative overflow-hidden">
-                    <div className="absolute inset-0 opacity-5 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '40px 40px' }}></div>
-                    
-                    <div className="container mx-auto px-6 relative z-10">
-                    <FadeIn>
-                        <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
-                        <div className="text-left">
-                            <span className="text-cyan-400 font-bold uppercase tracking-wider text-sm mb-2 block">Trilhas de Carreira</span>
-                            <h2 className="text-3xl md:text-5xl font-extrabold text-white leading-tight">
-                            Jornadas Guiadas
-                            </h2>
-                            <p className="text-slate-400 text-lg mt-4 max-w-xl">
-                            Caminhos sequenciais desenhados por especialistas para você ir do básico ao avançado em uma competência específica.
-                            </p>
-                        </div>
-                        <Button variant="secondary" className="whitespace-nowrap">
-                            Ver todas as trilhas
-                        </Button>
-                        </div>
-                    </FadeIn>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {journeys.map((journey, idx) => (
-                        <FadeIn key={idx} delay={idx * 150}>
-                            <JourneyCard {...journey} />
-                        </FadeIn>
-                        ))}
-                    </div>
-                    </div>
-                </section>
-
-                {/* Diferencial: Ao Vivo (Com Destaque para Interatividade) */}
-                <section id="aovivo" className="py-32 bg-slate-900 relative overflow-hidden">
-                    <div className="absolute -top-40 -right-40 w-[600px] h-[600px] bg-red-600/10 rounded-full blur-3xl animate-pulse pointer-events-none"></div>
-                    <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-red-900/10 to-transparent pointer-events-none"></div>
-
-                    <div className="container mx-auto px-6 relative z-10">
-                    <div className="flex flex-col md:flex-row items-center gap-16">
-                        <FadeIn className="md:w-1/2 order-2 md:order-1">
-                            <div className="relative group perspective-1000">
-                            {/* Card simulando a interface da Live */}
-                            <div className="bg-slate-900 rounded-2xl border border-slate-700 p-2 shadow-2xl relative z-20 transform transition-transform duration-500 group-hover:rotate-y-2 group-hover:rotate-x-2">
-                                <div className="bg-slate-800 rounded-xl overflow-hidden aspect-video relative">
-                                <img src="https://images.unsplash.com/photo-1544531586-fde5298cdd40?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" className="w-full h-full object-cover opacity-60" />
-                                
-                                <div className="absolute top-4 left-4 bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-2 animate-pulse shadow-lg shadow-red-600/40">
-                                    <span className="w-2 h-2 bg-white rounded-full"></span> AO VIVO
-                                </div>
-                                
-                                <div className="absolute bottom-4 left-4 right-4 flex items-center gap-3">
-                                    <div className="bg-slate-900/80 backdrop-blur text-white px-4 py-2 rounded-lg text-sm font-bold flex-1">
-                                    Workshop: Estratégias de Negociação
-                                    </div>
-                                    <div className="w-10 h-10 bg-cyan-500 rounded-full flex items-center justify-center text-slate-900 font-bold shadow-lg">
-                                    <Users size={20} />
-                                    </div>
-                                </div>
-                                </div>
-                                
-                                <div className="mt-2 space-y-2 px-2 pb-2">
-                                <div className="flex gap-2 items-center text-xs text-slate-400">
-                                    <div className="w-6 h-6 rounded-full bg-purple-500"></div>
-                                    <span className="text-white font-bold">Ana:</span> Como lidar com conflitos em equipes remotas?
-                                </div>
-                                <div className="flex gap-2 items-center text-xs text-slate-400">
-                                    <div className="w-6 h-6 rounded-full bg-green-500"></div>
-                                    <span className="text-white font-bold">Prof. Carlos:</span> Excelente ponto, Ana! Vamos abordar isso agora.
-                                </div>
-                                </div>
-                            </div>
-                            
-                            <div className="absolute -inset-4 bg-gradient-to-r from-red-500 to-orange-600 rounded-2xl blur-lg opacity-30 z-10 group-hover:opacity-50 transition-opacity duration-500"></div>
-                            </div>
-                        </FadeIn>
-
-                        <FadeIn className="md:w-1/2 order-1 md:order-2" delay={200}>
-                            <div className="inline-block p-4 rounded-2xl bg-red-500/10 text-red-500 mb-6 border border-red-500/20 shadow-lg shadow-red-500/10">
-                            <MonitorPlay size={48} />
-                            </div>
-                            <h2 className="text-4xl md:text-6xl font-extrabold text-white mb-6 leading-tight">
-                            Aulas Ao Vivo & <br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-orange-500">Interatividade</span>
-                            </h2>
-                            <p className="text-slate-300 text-lg mb-8 leading-relaxed">
-                            O mercado muda rápido. No Evereste, conectamos você diretamente com executivos e especialistas para mentorias e debates em tempo real.
-                            </p>
-                            
-                            <div className="space-y-6 mb-10">
-                            <div className="flex gap-4">
-                                <div className="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-red-500 border border-slate-700 flex-shrink-0">
-                                <Handshake size={24} />
-                                </div>
-                                <div>
-                                <h4 className="text-white font-bold text-lg">Aulas Interativas</h4>
-                                <p className="text-slate-400 text-sm">Levante a mão, abra o microfone e tire suas dúvidas na hora. Aqui você não é apenas um espectador.</p>
-                                </div>
-                            </div>
-                            <div className="flex gap-4">
-                                <div className="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-red-500 border border-slate-700 flex-shrink-0">
-                                <MessageCircle size={24} />
-                                </div>
-                                <div>
-                                <h4 className="text-white font-bold text-lg">Networking Real</h4>
-                                <p className="text-slate-400 text-sm">Troque experiências com profissionais de diversas áreas e expanda suas conexões.</p>
-                                </div>
-                            </div>
-                            </div>
-
-                            <Button variant="glow" className="px-10 py-4 text-lg w-full md:w-auto">
-                            Ver Agenda de Lives
-                            </Button>
-                        </FadeIn>
-                    </div>
-                    </div>
-                </section>
-
-                {/* Instrutores (Descrição Estilo LinkedIn) */}
-                <section id="instrutores" className="py-24 bg-slate-900">
-                    <div className="container mx-auto px-6">
-                    <FadeIn>
-                        <SectionHeading 
-                        title="Mestres do Mercado" 
-                        subtitle="Aprenda com quem vive a realidade corporativa e lidera transformações."
-                        />
-                    </FadeIn>
-                    
-                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-                        {[
-                            { 
-                                name: "Carlos Mendes", 
-                                role: "Diretor de Operações e Estratégia", 
-                                bio: "Executivo com 15+ anos de experiência liderando expansões internacionais em multinacionais de varejo. Especialista em conectar Planejamento Estratégico com execução ágil.", 
-                                img: "https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80" 
-                            },
-                            { 
-                                name: "Juliana Rocha", 
-                                role: "Head de Inovação & Projetos", 
-                                bio: "PMP e Agile Coach. Liderou a transformação digital de grandes bancos. Apaixonada por descomplicar a Gestão de Projetos e formar times de alta performance.", 
-                                img: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80" 
-                            },
-                            { 
-                                name: "Roberto Alencar", 
-                                role: "CFO & Consultor Financeiro", 
-                                bio: "Auditor e Consultor. Dedica-se a ensinar finanças corporativas e investimentos de forma prática. Ajuda empresas a otimizarem custos e maximizarem o valuation.", 
-                                img: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80" 
-                            },
-                            { 
-                                name: "Fernanda Costa", 
-                                role: "Especialista em BI & Data Analytics", 
-                                bio: "Cientista de Dados focada em Business Intelligence. Ensina gestores a tomarem decisões baseadas em dados usando Excel Avançado e Power BI. Mestra em Cultura Digital.", 
-                                img: "https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80" 
-                            }
-                        ].map((inst, i) => (
-                        <FadeIn key={i} delay={i * 100}>
-                            <InstructorCard 
-                            name={inst.name} 
-                            role={inst.role} 
-                            bio={inst.bio}
-                            image={inst.img}
-                            />
-                        </FadeIn>
-                        ))}
-                    </div>
-                    </div>
-                </section>
-
-                {/* Pricing / Segments */}
-                <section id="empresas" className="py-24 bg-gradient-to-b from-slate-900 to-slate-800">
-                    <div className="container mx-auto px-6">
-                    <FadeIn>
-                        <SectionHeading title="Soluções para todos os momentos" subtitle="Seja para sua evolução pessoal ou para escalar a potência do seu time." />
-                    </FadeIn>
-                    
-                    <div className="flex flex-col lg:flex-row justify-center items-stretch gap-8 max-w-6xl mx-auto">
-                        
-                        {/* Community / Free */}
-                        <FadeIn className="w-full lg:w-1/3 flex flex-col" delay={0}>
-                        <div className="bg-slate-900 p-8 rounded-2xl border border-slate-700 hover:border-cyan-500 transition-all duration-300 flex flex-col h-full hover:-translate-y-2 hover:shadow-xl">
-                            <div className="mb-6 bg-cyan-900/20 text-cyan-400 w-16 h-16 rounded-lg flex items-center justify-center">
-                            <Users size={32} />
-                            </div>
-                            <h3 className="text-2xl font-bold text-white mb-2">Comunidade</h3>
-                            <p className="text-slate-400 text-sm mb-6 flex-1">Cursos introdutórios gratuitos para democratizar o acesso ao conhecimento.</p>
-                            <div className="text-4xl font-bold text-white mb-6">Grátis</div>
-                            <ul className="space-y-3 text-slate-300 text-sm mb-8">
-                            <li className="flex gap-2"><CheckCircle size={16} className="text-cyan-500" /> Introdução ao Excel</li>
-                            <li className="flex gap-2"><CheckCircle size={16} className="text-cyan-500" /> Marketing Pessoal</li>
-                            <li className="flex gap-2"><CheckCircle size={16} className="text-cyan-500" /> Finanças Pessoais</li>
-                            </ul>
-                            <Button variant="outline" className="w-full mt-auto">Acessar Grátis</Button>
-                        </div>
-                        </FadeIn>
-
-                        {/* Pro Student */}
-                        <FadeIn className="w-full lg:w-1/3 flex flex-col" delay={150}>
-                        <div className="bg-slate-800 p-8 rounded-2xl border-2 border-cyan-500 shadow-2xl shadow-cyan-500/20 relative flex flex-col h-full transform transition-transform hover:-translate-y-3">
-                            <div className="absolute top-0 right-0 bg-cyan-500 text-slate-900 text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">MAIS POPULAR</div>
-                            <div className="mb-6 bg-cyan-500 text-slate-900 w-16 h-16 rounded-lg flex items-center justify-center shadow-lg shadow-cyan-500/50">
-                            <Briefcase size={32} />
-                            </div>
-                            <h3 className="text-2xl font-bold text-white mb-2">Profissional</h3>
-                            <p className="text-cyan-400 text-sm mb-6 flex-1">Acesso ilimitado a todas as escolas, mentorias e certificados.</p>
-                            <div className="text-5xl font-bold text-white mb-6">
-                            R$ 119<span className="text-lg text-slate-500 font-normal">/mês</span>
-                            </div>
-                            <ul className="space-y-3 text-slate-300 text-sm mb-8">
-                            <li className="flex gap-2"><CheckCircle size={16} className="text-cyan-500" /> +500 cursos disponíveis</li>
-                            <li className="flex gap-2"><CheckCircle size={16} className="text-cyan-500" /> Aulas ao vivo semanais</li>
-                            <li className="flex gap-2"><CheckCircle size={16} className="text-cyan-500" /> Projetos práticos e feedback</li>
-                            <li className="flex gap-2"><CheckCircle size={16} className="text-cyan-500" /> Certificado Oficial</li>
-                            </ul>
-                            <Button variant="primary" className="w-full mt-auto">Assinar Agora</Button>
-                        </div>
-                        </FadeIn>
-
-                        {/* Corporate / B2B */}
-                        <FadeIn className="w-full lg:w-1/3 flex flex-col" delay={300}>
-                        <div className="bg-slate-900 p-8 rounded-2xl border border-slate-700 hover:border-cyan-500 transition-all duration-300 flex flex-col h-full hover:-translate-y-2 hover:shadow-xl">
-                            <div className="mb-6 bg-slate-700 text-white w-16 h-16 rounded-lg flex items-center justify-center">
-                            <Building2 size={32} />
-                            </div>
-                            <h3 className="text-2xl font-bold text-white mb-2">Para Empresas</h3>
-                            <p className="text-slate-400 text-sm mb-6 flex-1">Capacite seu time com trilhas personalizadas de Liderança, Vendas e Gestão.</p>
-                            <div className="text-3xl font-bold text-white mb-6">Sob Medida</div>
-                            <ul className="space-y-3 text-slate-300 text-sm mb-8">
-                            <li className="flex gap-2"><CheckCircle size={16} className="text-slate-500" /> Dashboard de gestão de equipe</li>
-                            <li className="flex gap-2"><CheckCircle size={16} className="text-slate-500" /> Trilhas por competência</li>
-                            <li className="flex gap-2"><CheckCircle size={16} className="text-slate-500" /> Mentoria in-company</li>
-                            </ul>
-                            <Button variant="white" className="w-full mt-auto">Falar com Consultor</Button>
-                        </div>
-                        </FadeIn>
-
-                    </div>
-                    </div>
-                </section>
-
-                {/* FAQ Section */}
-                <section id="faq" className="py-24 bg-slate-900">
-                    <div className="container mx-auto px-6 max-w-4xl">
-                        <FadeIn>
-                            <div className="border border-cyan-500/30 rounded-3xl p-8 md:p-12 bg-slate-800/30 backdrop-blur-sm relative overflow-hidden">
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-bl-full -mr-8 -mt-8 pointer-events-none"></div>
-                                
-                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 border-b border-cyan-500/30 pb-6">
-                                    <div>
-                                        <span className="text-cyan-400 font-bold uppercase tracking-wider text-sm mb-2 block">FAQ</span>
-                                        <h2 className="text-3xl md:text-5xl font-extrabold text-white">
-                                            Dúvidas <br />
-                                            <span className="text-cyan-400">Frequentes</span>
-                                        </h2>
-                                    </div>
-                                    <div className="hidden md:block text-cyan-500/80 mt-4 md:mt-0">
-                                        <Mountain size={64} strokeWidth={1.5} />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    {faqs.map((faq, idx) => (
-                                        <FAQItem 
-                                            key={idx}
-                                            number={`0${idx + 1}`}
-                                            question={faq.question}
-                                            answer={faq.answer}
-                                            isOpen={openFAQ === idx}
-                                            onClick={() => toggleFAQ(idx)}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                        </FadeIn>
-                    </div>
-                </section>
-
-                {/* Footer */}
-                <footer className="bg-slate-950 pt-20 pb-10 border-t border-slate-900 text-sm text-slate-400">
-                    <div className="container mx-auto px-6">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-12 mb-16">
-                        <div>
-                        <div className="flex items-center gap-2 mb-6">
-                            <div className="w-6 h-6 bg-cyan-500 rounded-tr-lg rounded-bl-lg flex items-center justify-center">
-                            <span className="font-bold text-slate-900 text-xs">E</span>
-                            </div>
-                            <span className="text-xl font-bold text-white">Evereste</span>
-                        </div>
-                        <p className="mb-4">Desenvolvendo líderes e gestores para o futuro dos negócios.</p>
-                        <div className="flex gap-4">
-                            <div className="w-8 h-8 bg-slate-800 rounded flex items-center justify-center hover:bg-cyan-500 hover:text-slate-900 transition-colors cursor-pointer">IG</div>
-                            <div className="w-8 h-8 bg-slate-800 rounded flex items-center justify-center hover:bg-cyan-500 hover:text-slate-900 transition-colors cursor-pointer">YT</div>
-                            <div className="w-8 h-8 bg-slate-800 rounded flex items-center justify-center hover:bg-cyan-500 hover:text-slate-900 transition-colors cursor-pointer">LI</div>
-                        </div>
-                        </div>
-                        
-                        <div>
-                        <h4 className="text-white font-bold mb-4 uppercase text-xs tracking-wider">Escolas</h4>
-                        <ul className="space-y-2">
-                            <li><a href="#" className="hover:text-cyan-400">Gestão & Liderança</a></li>
-                            <li><a href="#" className="hover:text-cyan-400">Finanças</a></li>
-                            <li><a href="#" className="hover:text-cyan-400">Marketing & Vendas</a></li>
-                            <li><a href="#" className="hover:text-cyan-400">Projetos</a></li>
-                            <li><a href="#" className="hover:text-cyan-400">Tecnologia</a></li>
-                        </ul>
-                        </div>
-
-                        <div>
-                        <h4 className="text-white font-bold mb-4 uppercase text-xs tracking-wider">Institucional</h4>
-                        <ul className="space-y-2">
-                            <li><a href="#" className="hover:text-cyan-400">Sobre a Evereste</a></li>
-                            <li><a href="#" className="hover:text-cyan-400">Para Empresas</a></li>
-                            <li><a href="#" className="hover:text-cyan-400">Trabalhe Conosco</a></li>
-                            <li><a href="#" className="hover:text-cyan-400">Blog Corporativo</a></li>
-                        </ul>
-                        </div>
-
-                        <div>
-                        <h4 className="text-white font-bold mb-4 uppercase text-xs tracking-wider">Suporte</h4>
-                        <ul className="space-y-2">
-                            <li><a href="#" className="hover:text-cyan-400">Central de ajuda</a></li>
-                            <li><a href="#" className="hover:text-cyan-400">Política de privacidade</a></li>
-                            <li><a href="#" className="hover:text-cyan-400">Termos de uso</a></li>
-                        </ul>
-                        </div>
-                    </div>
-                    
-                    <div className="border-t border-slate-900 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-                        <p>&copy; 2024 Evereste Academy. Todos os direitos reservados.</p>
-                        <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                        <span>Serviços operacionais</span>
-                        </div>
-                    </div>
-                    </div>
-                </footer>
-
-                </div>
-            );
+        function showLoginError(msg) {
+            loginError.innerText = msg;
+            loginError.classList.remove('hidden');
         }
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        document.getElementById('btn-login').addEventListener('click', async () => {
+            try {
+                const provider = new GoogleAuthProvider();
+                provider.setCustomParameters({ hd: "evereste.org.br" }); // Força Google a sugerir emails @evereste
+                
+                const result = await signInWithPopup(auth, provider);
+                const email = result.user.email;
+                
+                if (!email.endsWith('@evereste.org.br')) {
+                    await signOut(auth);
+                    showLoginError("Acesso negado. Utilize uma conta corporativa com final @evereste.org.br.");
+                }
+            } catch (error) {
+                console.error(error);
+                showLoginError("Falha na autenticação: " + error.message);
+            }
+        });
+
+        document.getElementById('btn-logout').addEventListener('click', () => {
+            signOut(auth);
+        });
+
+        onAuthStateChanged(auth, (user) => {
+            if (user && user.email.endsWith('@evereste.org.br')) {
+                state.user = user;
+                loginScreen.classList.add('hidden');
+                appScreen.classList.remove('hidden');
+                
+                document.getElementById('user-name').innerText = user.displayName || user.email;
+                document.getElementById('user-avatar').src = user.photoURL || '';
+                
+                initFirestore();
+            } else {
+                state.user = null;
+                loginScreen.classList.remove('hidden');
+                appScreen.classList.add('hidden');
+            }
+        });
+
+        // ==========================================
+        // LÓGICA DE BANCO DE DADOS E RENDERIZAÇÃO
+        // ==========================================
+        function setDbStatus(msg, statusType = 'normal') {
+            document.getElementById('db-status-text').innerText = msg;
+            const icon = document.getElementById('db-status-icon');
+            icon.className = 'w-2 h-2 rounded-full ' + 
+                (statusType === 'syncing' ? 'bg-indigo-500 animate-spin' :
+                 statusType === 'success' ? 'bg-emerald-500 animate-pulse' :
+                 statusType === 'error' ? 'bg-red-500' : 'bg-amber-500');
+        }
+
+        function initFirestore() {
+            setDbStatus('Sincronizando...', 'syncing');
+            const q = collection(db, 'artifacts', appId, 'public', 'data', 'monthlyMetrics');
+            
+            onSnapshot(q, (snapshot) => {
+                const data = snapshot.docs.map(doc => doc.data());
+                data.sort((a, b) => a.timestamp - b.timestamp);
+                
+                state.firebaseData = data;
+                if(data.length > 0) {
+                    setDbStatus('Sincronizado via Firebase', 'success');
+                } else {
+                    setDbStatus('Banco vazio. Mostrando mock.', 'warning');
+                }
+                renderApp();
+            }, (err) => {
+                console.error(err);
+                setDbStatus('Erro ao ler dados.', 'error');
+            });
+        }
+
+        // ==========================================
+        // SISTEMA DE UI E GRÁFICOS
+        // ==========================================
+        function getActiveData() {
+            const data = state.firebaseData.length > 0 ? state.firebaseData : fallbackMonthlyData;
+            if (state.timeRange === 'YTD') return data;
+            return data.filter(d => d.quarter === state.timeRange);
+        }
+
+        function getCurrentKPIs() {
+            if (state.selectedArea === 'mkt') return kpiDataByArea.mkt[state.selectedNetwork];
+            return kpiDataByArea[state.selectedArea] || kpiDataByArea['global'];
+        }
+
+        function destroyCharts() {
+            state.charts.forEach(chart => chart.destroy());
+            state.charts = [];
+        }
+
+        function renderApp() {
+            renderSidebar();
+            
+            const mainContent = document.getElementById('main-content');
+            
+            if (state.activeTab === 'dashboard') {
+                document.getElementById('header-title').innerText = 'Painel de Desempenho';
+                mainContent.innerHTML = buildDashboardHTML();
+                
+                // Atacha Event Listeners (Filtros)
+                document.getElementById('time-filter').addEventListener('change', (e) => {
+                    state.timeRange = e.target.value; renderApp();
+                });
+                
+                document.querySelectorAll('.area-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        state.selectedArea = e.target.dataset.area;
+                        if(state.selectedArea !== 'mkt') state.selectedNetwork = 'instagram';
+                        renderApp();
+                    });
+                });
+
+                document.querySelectorAll('.network-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        // Some buttons have icons inside, get closest button
+                        const target = e.target.closest('button');
+                        state.selectedNetwork = target.dataset.network;
+                        renderApp();
+                    });
+                });
+
+                renderCharts();
+
+            } else {
+                document.getElementById('header-title').innerText = 'Gestão de Dados Mensais';
+                mainContent.innerHTML = buildDataEntryHTML();
+                attachDataEntryListeners();
+            }
+
+            lucide.createIcons();
+        }
+
+        function renderSidebar() {
+            const nav = document.getElementById('nav-menu');
+            const items = [
+                { id: 'dashboard', icon: 'layout-dashboard', label: 'Dashboard Central' },
+                { id: 'data', icon: 'file-spreadsheet', label: 'Entrada de Dados' }
+            ];
+            
+            nav.innerHTML = items.map(item => `
+                <button data-tab="${item.id}" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${state.activeTab === item.id ? 'bg-indigo-500/10 text-indigo-400 font-semibold' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 font-medium'}">
+                    <i data-lucide="${item.icon}" class="w-4 h-4"></i>
+                    <span class="text-sm">${item.label}</span>
+                </button>
+            `).join('');
+
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    state.activeTab = e.target.closest('button').dataset.tab;
+                    renderApp();
+                });
+            });
+        }
+
+        function buildDashboardHTML() {
+            const activeData = getActiveData();
+            const currentKPIs = getCurrentKPIs();
+            const lastData = activeData.length > 0 ? activeData[activeData.length-1] : null;
+
+            // Filtros de Área
+            const areaFiltersHTML = areasList.map(area => `
+                <button data-area="${area.id}" class="area-btn px-4 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${state.selectedArea === area.id ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'}">
+                    ${area.name}
+                </button>
+            `).join('');
+
+            // Subfiltro MKT
+            let subFilterHTML = '';
+            if (state.selectedArea === 'mkt') {
+                const networks = [
+                    { id: 'instagram', label: 'Instagram', icon: 'instagram' },
+                    { id: 'linkedin', label: 'LinkedIn', icon: 'linkedin' },
+                    { id: 'youtube', label: 'YouTube', icon: 'youtube' },
+                    { id: 'tiktok', label: 'TikTok', icon: 'smartphone' }
+                ];
+                subFilterHTML = `
+                <div class="flex items-center gap-3 mt-4 mb-2 fade-in">
+                    <div class="text-sm font-semibold text-slate-400 flex items-center gap-1">
+                        Rede Social <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                    </div>
+                    <div class="flex bg-white rounded-xl shadow-sm border border-slate-200/60 p-1 flex-wrap">
+                        ${networks.map(net => `
+                            <button data-network="${net.id}" class="network-btn flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${state.selectedNetwork === net.id ? 'bg-indigo-50 text-indigo-700' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'}">
+                                <i data-lucide="${net.icon}" class="w-4 h-4"></i> ${net.label}
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>`;
+            }
+
+            // Cards de KPI
+            const kpisHTML = currentKPIs.map(kpi => {
+                const val = lastData && lastData[kpi.dataKey] !== undefined ? formatValue(lastData[kpi.dataKey], kpi.format) : formatValue(0, kpi.format);
+                const bgColors = { green: 'bg-emerald-50 text-emerald-700', yellow: 'bg-amber-50 text-amber-700', red: 'bg-red-50 text-red-700' };
+                const confBg = bgColors[kpi.status];
+                
+                const trendColor = kpi.isPositive ? (kpi.inverseLogic ? 'text-red-600' : 'text-emerald-600') : (kpi.inverseLogic ? 'text-emerald-600' : 'text-red-600');
+                const trendBg = kpi.isPositive ? (kpi.inverseLogic ? 'bg-red-50' : 'bg-emerald-50') : (kpi.inverseLogic ? 'bg-emerald-50' : 'bg-red-50');
+                const trendIcon = kpi.isPositive ? 'trending-up' : 'trending-down';
+
+                return `
+                <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200/60 relative overflow-hidden transition-all duration-300 hover:shadow-md">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="p-2.5 rounded-2xl ${confBg}">
+                            <i data-lucide="${kpi.iconName}" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="text-[12px] font-semibold text-slate-500 mb-1 leading-tight">${kpi.title}</h4>
+                        <h2 class="text-2xl font-black text-slate-800 tracking-tight">${val}</h2>
+                        <div class="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                            <div class="flex items-center gap-1 px-1.5 py-0.5 rounded-md ${trendBg} ${trendColor}">
+                                <i data-lucide="${trendIcon}" class="w-3 h-3"></i> <span class="font-bold">${kpi.trend}</span>
+                            </div>
+                            <span class="text-slate-400 font-medium truncate ml-2">Meta: ${kpi.target}</span>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+
+            // Grids para gráficos
+            const chartsHTML = currentKPIs.map(kpi => `
+                <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200/60 flex flex-col h-[300px]">
+                    <div class="mb-4">
+                        <h3 class="text-[15px] font-bold text-slate-800 tracking-tight">${kpi.title}</h3>
+                        <p class="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Análise de Performance</p>
+                    </div>
+                    <div id="chart-${kpi.id}" class="flex-1 w-full"></div>
+                </div>
+            `).join('');
+
+            return `
+                <div class="max-w-[1600px] mx-auto space-y-6 fade-in">
+                    
+                    <!-- Barra Filtros -->
+                    <div class="bg-white p-2 rounded-2xl shadow-sm border border-slate-200/60 flex flex-col xl:flex-row justify-between items-center gap-4">
+                        <div class="flex items-center w-full xl:w-auto overflow-x-auto hide-scrollbar px-2">
+                            <div class="flex space-x-1">${areaFiltersHTML}</div>
+                        </div>
+                        <div class="flex gap-3 w-full xl:w-auto px-2 pb-2 xl:pb-0">
+                            <div class="relative w-full xl:w-64">
+                                <i data-lucide="calendar" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"></i>
+                                <select id="time-filter" class="w-full bg-slate-50 border border-slate-200 text-slate-700 font-medium text-sm rounded-xl focus:ring-2 focus:ring-indigo-500 block pl-10 p-2.5 outline-none cursor-pointer">
+                                    <option value="Q1" ${state.timeRange==='Q1'?'selected':''}>1º Trimestre (Jan-Mar)</option>
+                                    <option value="Q2" ${state.timeRange==='Q2'?'selected':''}>2º Trimestre (Abr-Jun)</option>
+                                    <option value="Q3" ${state.timeRange==='Q3'?'selected':''}>3º Trimestre (Jul-Set)</option>
+                                    <option value="Q4" ${state.timeRange==='Q4'?'selected':''}>4º Trimestre (Out-Dez)</option>
+                                    <option value="YTD" ${state.timeRange==='YTD'?'selected':''}>Acumulado (YTD)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    ${subFilterHTML}
+
+                    <!-- KPIs -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-6 gap-4">
+                        ${kpisHTML}
+                    </div>
+
+                    <!-- Gráficos -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                        ${chartsHTML}
+                    </div>
+
+                    <!-- Nota Técnica -->
+                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200/60 mt-8">
+                        <div class="flex items-center gap-3 mb-6">
+                            <div class="p-2 bg-indigo-50 rounded-lg text-indigo-600"><i data-lucide="check-square" class="w-6 h-6"></i></div>
+                            <div>
+                                <h3 class="text-lg font-bold text-slate-800 tracking-tight">Nota Técnica: Monitorização</h3>
+                                <p class="text-sm text-slate-500">Acompanhamento dos objetivos fundamentais de consolidação para 2026.</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div class="p-4 rounded-2xl border border-emerald-200 bg-emerald-50 flex items-start gap-3">
+                                <i data-lucide="check-circle-2" class="text-emerald-600 w-5 h-5"></i>
+                                <div><h4 class="text-sm font-bold text-emerald-800">Cumprimento ≥ 80% das metas</h4><p class="text-xs mt-1 text-emerald-600">Progresso atual: 85%</p></div>
+                            </div>
+                            <div class="p-4 rounded-2xl border border-emerald-200 bg-emerald-50 flex items-start gap-3">
+                                <i data-lucide="check-circle-2" class="text-emerald-600 w-5 h-5"></i>
+                                <div><h4 class="text-sm font-bold text-emerald-800">Relatórios Trimestrais</h4><p class="text-xs mt-1 text-emerald-600">Q1 e Q2 validados</p></div>
+                            </div>
+                            <div class="p-4 rounded-2xl border border-emerald-200 bg-emerald-50 flex items-start gap-3">
+                                <i data-lucide="check-circle-2" class="text-emerald-600 w-5 h-5"></i>
+                                <div><h4 class="text-sm font-bold text-emerald-800">Consolidação do Painel</h4><p class="text-xs mt-1 text-emerald-600">Integrado e ativo</p></div>
+                            </div>
+                            <div class="p-4 rounded-2xl border border-amber-200 bg-amber-50 flex items-start gap-3">
+                                <i data-lucide="square" class="text-amber-500 w-5 h-5"></i>
+                                <div><h4 class="text-sm font-bold text-amber-800">Crescimento Alcance (Mín 18%)</h4><p class="text-xs mt-1 text-amber-600">Atual: 14%</p></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderCharts() {
+            destroyCharts();
+            const data = getActiveData();
+            const currentKPIs = getCurrentKPIs();
+            const categories = data.map(d => d.month);
+
+            currentKPIs.forEach(kpi => {
+                const seriesData = data.map(d => d[kpi.dataKey] || 0);
+                
+                let chartType = kpi.chartType;
+                let colors = ['#4f46e5'];
+                if (chartType === 'line') colors = ['#f59e0b'];
+                if (chartType === 'bar') colors = ['#0ea5e9'];
+
+                const options = {
+                    series: [{ name: 'Realizado', data: seriesData }],
+                    chart: { 
+                        type: chartType, 
+                        height: '100%', 
+                        toolbar: { show: false }, 
+                        parentHeightOffset: 0,
+                        fontFamily: 'inherit'
+                    },
+                    colors: colors,
+                    fill: {
+                        type: chartType === 'area' ? 'gradient' : 'solid',
+                        gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0, stops: [0, 90, 100] }
+                    },
+                    dataLabels: { enabled: false },
+                    stroke: { curve: 'smooth', width: chartType === 'bar' ? 0 : 3 },
+                    xaxis: { 
+                        categories: categories,
+                        axisBorder: { show: false }, axisTicks: { show: false },
+                        labels: { style: { colors: '#94a3b8', fontSize: '11px' } }
+                    },
+                    yaxis: {
+                        labels: { 
+                            style: { colors: '#94a3b8', fontSize: '11px' },
+                            formatter: (value) => formatValue(value, kpi.format)
+                        }
+                    },
+                    grid: { borderColor: '#f1f5f9', strokeDashArray: 4, padding: { top: 0, right: 0, bottom: 0, left: 10 } },
+                    annotations: {
+                        yaxis: [{
+                            y: kpi.numericTarget,
+                            borderColor: '#94a3b8', strokeDashArray: 4,
+                            label: { text: 'Meta', style: { color: '#fff', background: '#94a3b8', fontSize: '10px' } }
+                        }]
+                    },
+                    tooltip: {
+                        y: { formatter: (value) => formatValue(value, kpi.format) }
+                    }
+                };
+
+                const el = document.querySelector(`#chart-${kpi.id}`);
+                if (el) {
+                    const chart = new ApexCharts(el, options);
+                    chart.render();
+                    state.charts.push(chart);
+                }
+            });
+        }
+
+        // ==========================================
+        // ENTRADA DE DADOS E UPLOAD (CSV PARA FIREBASE)
+        // ==========================================
+        function buildDataEntryHTML() {
+            return `
+            <div class="max-w-3xl mx-auto bg-white rounded-3xl shadow-sm border border-slate-200/60 p-10 fade-in mt-4">
+                <div class="text-center mb-10">
+                    <div class="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-5 rotate-3 shadow-inner">
+                        <i data-lucide="upload-cloud" class="-rotate-3 w-10 h-10"></i>
+                    </div>
+                    <h2 class="text-3xl font-bold text-slate-800 tracking-tight">Atualização de Base de Dados</h2>
+                    <p class="text-slate-500 mt-2 text-lg">Faça o upload do arquivo Mestre com o fecho mensal.</p>
+                </div>
+
+                <div class="space-y-8">
+                    <div id="upload-msg-container" class="hidden p-4 rounded-xl text-sm font-bold flex items-center gap-2"></div>
+
+                    <div id="upload-zone" class="border-2 border-dashed border-slate-300 rounded-2xl p-10 text-center transition-all bg-slate-50/50 hover:bg-slate-50 hover:border-indigo-300 cursor-pointer group">
+                        <div class="bg-white w-16 h-16 rounded-full flex items-center justify-center mx-auto shadow-sm border border-slate-200 mb-4 group-hover:scale-110 transition-transform">
+                            <i data-lucide="file-spreadsheet" class="text-indigo-500 w-7 h-7"></i>
+                        </div>
+                        <p class="text-base font-bold text-slate-700">Clique aqui para selecionar o Arquivo Mestre</p>
+                        <p class="text-sm text-slate-500 mt-1 mb-6">Formatos suportados: Excel (.xls, .xlsx), CSV ou PDF</p>
+                        
+                        <input type="file" id="file-input" accept=".csv, .xls, .xlsx, application/pdf" class="hidden" />
+                        
+                        <button id="btn-fake-click" class="px-6 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-100">
+                            Procurar ficheiro
+                        </button>
+                    </div>
+                    
+                    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
+                        <strong>Atenção ao formato:</strong> A planilha precisa ter o cabeçalho idêntico às chaves do sistema (ex: <code>month, quarter, timestamp, g_alc, ig_cpm</code>).
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function attachDataEntryListeners() {
+            const uploadZone = document.getElementById('upload-zone');
+            const fileInput = document.getElementById('file-input');
+            const fakeBtn = document.getElementById('btn-fake-click');
+            const msgContainer = document.getElementById('upload-msg-container');
+
+            const setMsg = (text, type) => {
+                msgContainer.className = `p-4 rounded-xl text-sm font-bold flex items-center gap-2 mb-4 ${
+                    type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                    type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' :
+                    type === 'warning' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+                    'bg-blue-50 text-blue-700 border border-blue-200'
+                }`;
+                const iconName = type === 'success' ? 'check-circle-2' : type === 'error' || type === 'warning' ? 'alert-circle' : 'loader-2';
+                const spinClass = type === 'info' ? 'animate-spin' : '';
+                msgContainer.innerHTML = `<i data-lucide="${iconName}" class="w-5 h-5 ${spinClass}"></i> ${text}`;
+                msgContainer.classList.remove('hidden');
+                lucide.createIcons();
+            };
+
+            const triggerClick = () => fileInput.click();
+            uploadZone.addEventListener('click', triggerClick);
+            fakeBtn.addEventListener('click', (e) => { e.stopPropagation(); triggerClick(); });
+
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const ext = file.name.split('.').pop().toLowerCase();
+
+                // Tratamento especial para PDF
+                if (ext === 'pdf') {
+                    setMsg('A extração de dados via PDF requer auditoria manual pelo suporte. Para atualizar o painel instantaneamente, envie o arquivo em Excel (.xls/.xlsx) ou CSV.', 'warning');
+                    return;
+                }
+
+                if (!['csv', 'xls', 'xlsx'].includes(ext)) {
+                    setMsg('Formato de arquivo não suportado.', 'error');
+                    return;
+                }
+
+                setMsg('Lendo e processando planilha...', 'info');
+                
+                const reader = new FileReader();
+                reader.onload = async (ev) => {
+                    try {
+                        // O SheetJS processa os bytes da planilha e converte automaticamente em Array/JSON
+                        const data = new Uint8Array(ev.target.result);
+                        const workbook = XLSX.read(data, {type: 'array'});
+                        const firstSheet = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheet];
+                        const parsedData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+                        if (!parsedData || parsedData.length === 0) {
+                            setMsg('Planilha vazia ou formato inválido.', 'error');
+                            return;
+                        }
+
+                        setMsg('Enviando dados para o banco de dados...', 'info');
+
+                        for (const item of parsedData) {
+                            if(item.month) {
+                                // Sanitização para garantir que números digitados com vírgula no Excel virem decimais de verdade
+                                Object.keys(item).forEach(key => {
+                                    if (key !== 'month' && key !== 'quarter' && typeof item[key] === 'string') {
+                                        const parsedNum = Number(item[key].replace(',', '.'));
+                                        if (!isNaN(parsedNum)) item[key] = parsedNum;
+                                    }
+                                });
+
+                                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'monthlyMetrics', item.month);
+                                await setDoc(docRef, item, { merge: true });
+                            }
+                        }
+                        
+                        setMsg('Upload realizado com sucesso! Atualizando dashboard...', 'success');
+                        setTimeout(() => {
+                            state.activeTab = 'dashboard';
+                            renderApp();
+                        }, 2000);
+                        
+                    } catch (err) {
+                        console.error(err);
+                        setMsg('Erro ao processar o arquivo. Verifique se as colunas estão corretas.', 'error');
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            });
+        }
     </script>
 </body>
 </html>
