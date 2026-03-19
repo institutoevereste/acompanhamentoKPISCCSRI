@@ -151,7 +151,7 @@
             tk: { title: 'Marketing: TikTok', icon: 'smartphone', fields: [{ id: 'tk_tv', label: 'TV (Total Visualizações)' }, { id: 'tk_er', label: 'ER (Engajamento em %)' }, { id: 'tk_share', label: 'Compartilhamentos' }, { id: 'tk_cpv', label: 'CPV (Custo por View R$)' }] },
             jor: { title: 'Jornalismo', icon: 'file-text', fields: [{ id: 'jor_mat', label: 'Matérias Publicadas (Portal+blog)' }, { id: 'jor_views', label: 'Visualizações por Matéria' }, { id: 'jor_ret', label: 'Taxa de Retenção de Leitura (%)' }] },
             evt: { title: 'Promoção de Eventos', icon: 'calendar-days', fields: [{ id: 'evt_sat', label: 'Satisfação Geral (%)' }, { id: 'evt_real', label: 'Eventos Realizados' }, { id: 'evt_plan', label: 'Eventos Planejados' }, { id: 'evt_part', label: 'Taxa de Participação (Total Pessoas)' }] },
-            soc: { title: 'Socioambiental', icon: 'recycle', fields: [{ id: 'soc_res', label: 'Resíduos Reciclados (%)' }, { id: 'soc_colab', label: 'Colaboradores Capacitados (%)' }, { id: 'soc_cap', label: 'Capacitação Comunidade' }, { id: 'soc_proj', label: 'N° de Projetos e Beneficiários (%)' }] },
+            soc: { title: 'Socioambiental', icon: 'recycle', fields: [{ id: 'soc_res', label: 'Resíduos reciclados (%)' }, { id: 'soc_colab', label: 'Colaboradores capacitados (%)' }, { id: 'soc_cap', label: 'Capacitação comunidade' }, { id: 'soc_proj', label: 'Nº de projetos e beneficiários atendidos (%)' }] },
             glb: { title: 'Dados Globais Institucionais', icon: 'globe', fields: [{ id: 'g_alc', label: 'Alcance Total Institucional' }, { id: 'g_cpm', label: 'CPM Médio Global' }, { id: 'g_views', label: 'Visualizações Globais' }, { id: 'g_evt', label: 'Total Eventos Institucionais' }] }
         };
 
@@ -219,10 +219,10 @@
                 { id: 'j3', title: "Retenção de Leitura", iconName: "clock", dataKey: "jor_ret", chartType: "line", format: "percent", numericTarget: 40.0, inverseLogic: false, agg: 'avg' }
             ],
             soc: [
-                { id: 's1', title: "Resíduos Reciclados", iconName: "recycle", dataKey: "soc_res", chartType: "area", format: "percent", numericTarget: 20.0, inverseLogic: false, agg: 'avg' },
-                { id: 's2', title: "Colab. Capacitados", iconName: "users", dataKey: "soc_colab", chartType: "bar", format: "percent", numericTarget: 70.0, inverseLogic: false, agg: 'avg' },
-                { id: 's3', title: "Capacitação Comunidade", iconName: "graduation-cap", dataKey: "soc_cap", chartType: "line", format: "number", numericTarget: 150, inverseLogic: false, agg: 'sum' },
-                { id: 's4', title: "Projetos e Benef.", iconName: "folder-heart", dataKey: "soc_proj", chartType: "bar", format: "percent", numericTarget: 20.0, inverseLogic: false, agg: 'avg' },
+                { id: 's1', title: "Resíduos reciclados", iconName: "recycle", dataKey: "soc_res", chartType: "area", format: "percent", numericTarget: 20.0, inverseLogic: false, agg: 'avg' },
+                { id: 's2', title: "Colaboradores capacitados", iconName: "users", dataKey: "soc_colab", chartType: "bar", format: "percent", numericTarget: 70.0, inverseLogic: false, agg: 'avg' },
+                { id: 's3', title: "Capacitação comunidade", iconName: "graduation-cap", dataKey: "soc_cap", chartType: "line", format: "number", numericTarget: 150, inverseLogic: false, agg: 'sum' },
+                { id: 's4', title: "Nº de projetos e beneficiários", iconName: "folder-heart", dataKey: "soc_proj", chartType: "bar", format: "percent", numericTarget: 20.0, inverseLogic: false, agg: 'avg' },
             ],
             evt: [
                 { id: 'e1', title: "Satisfação Geral", iconName: "smile", dataKey: "evt_sat", chartType: "area", format: "percent", numericTarget: 85.0, inverseLogic: false, agg: 'avg' },
