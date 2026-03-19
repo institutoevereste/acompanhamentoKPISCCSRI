@@ -172,10 +172,10 @@
         // Adicionado "agg": tipo de agregação (avg para médias/taxas, sum para totais absolutos)
         const kpiDataByArea = {
             global: [
-                { id: 'g1', title: "Alcance Total", iconName: "users", dataKey: "g_alc", chartType: "area", format: "number", numericTarget: 1400000, inverseLogic: false, agg: 'sum' },
-                { id: 'g2', title: "CPM Médio Global", iconName: "target", dataKey: "g_cpm", chartType: "line", format: "currency", numericTarget: 4.00, inverseLogic: true, agg: 'avg' },
-                { id: 'g3', title: "Visualizações", iconName: "layout-dashboard", dataKey: "g_views", chartType: "bar", format: "number", numericTarget: 3000, inverseLogic: false, agg: 'sum' },
-                { id: 'g4', title: "Eventos Institucionais", iconName: "calendar-days", dataKey: "g_evt", chartType: "bar", format: "number", numericTarget: 35, inverseLogic: false, agg: 'sum' },
+                { id: 'g1', title: "Alcance Total", iconName: "users", dataKeys: ["g_alc", "ig_alc", "yt_imp"], chartType: "area", format: "number", numericTarget: 1400000, inverseLogic: false, agg: 'sum' },
+                { id: 'g2', title: "CPM Médio Global", iconName: "target", dataKeys: ["g_cpm", "ig_cpm", "li_cpm"], chartType: "line", format: "currency", numericTarget: 4.00, inverseLogic: true, agg: 'avg' },
+                { id: 'g3', title: "Visualizações", iconName: "layout-dashboard", dataKeys: ["g_views", "yt_vvr", "tk_tv", "jor_views"], chartType: "bar", format: "number", numericTarget: 3000, inverseLogic: false, agg: 'sum' },
+                { id: 'g4', title: "Eventos Institucionais", iconName: "calendar-days", dataKeys: ["g_evt", "evt_real"], chartType: "bar", format: "number", numericTarget: 35, inverseLogic: false, agg: 'sum' },
             ],
             mkt: {
                 instagram: [
@@ -234,19 +234,34 @@
         ];
 
         // LÓGICAS DE CÁLCULO ATUALIZADAS (Média/Soma e % de Atingimento c/ Farol)
-        function getAggregatedValue(dataArray, dataKey, aggType) {
+        function getDocValue(d, kpi) {
+            // Se o KPI usar múltiplas chaves (ex: Visão Global somando várias redes)
+            if (kpi.dataKeys) {
+                let sum = 0;
+                let count = 0;
+                kpi.dataKeys.forEach(key => {
+                    let v = parseFloat(d[key] || 0);
+                    if (v > 0) { sum += v; count++; }
+                });
+                if (kpi.agg === 'avg') return count > 0 ? sum / count : 0;
+                return sum;
+            }
+            return parseFloat(d[kpi.dataKey] || 0);
+        }
+
+        function getAggregatedValue(dataArray, kpi) {
             if (!dataArray || dataArray.length === 0) return 0;
             let sum = 0;
             let count = 0;
             dataArray.forEach(d => {
-                const val = parseFloat(d[dataKey] || 0);
+                const val = getDocValue(d, kpi);
                 if (val > 0) { // Considerar apenas meses com dados inseridos
                     sum += val;
                     count++;
                 }
             });
             if (count === 0) return 0;
-            return aggType === 'avg' ? sum / count : sum;
+            return kpi.agg === 'avg' ? sum / count : sum;
         }
 
         function calculateAchievement(value, target, inverseLogic) {
@@ -434,7 +449,7 @@
 
             // Geração dos Cards atualizada com Atingimento e Farol
             const kpisHTML = currentKPIs.map(kpi => {
-                const aggValue = getAggregatedValue(activeData, kpi.dataKey, kpi.agg);
+                const aggValue = getAggregatedValue(activeData, kpi);
                 const valFormatted = formatValue(aggValue, kpi.format);
                 const targetFormatted = formatValue(kpi.numericTarget, kpi.format);
                 
@@ -578,11 +593,15 @@
                     // MODO COMPARATIVO: Agrupar por Trimestre
                     const qData = { 'Q1': [], 'Q2': [], 'Q3': [], 'Q4': [] };
                     fullData.forEach(d => {
-                        if (d[kpi.dataKey] !== undefined) qData[d.quarter].push(d);
+                        const hasData = kpi.dataKeys 
+                            ? kpi.dataKeys.some(key => d[key] !== undefined)
+                            : d[kpi.dataKey] !== undefined;
+                            
+                        if (hasData) qData[d.quarter].push(d);
                     });
 
                     const categories = ['Q1', 'Q2', 'Q3', 'Q4'];
-                    const seriesData = categories.map(q => getAggregatedValue(qData[q], kpi.dataKey, kpi.agg));
+                    const seriesData = categories.map(q => getAggregatedValue(qData[q], kpi));
 
                     options = {
                         series: [{ name: 'Resultado', data: seriesData }],
@@ -599,7 +618,7 @@
                 } else {
                     // MODO NORMAL (Série Temporal + Predição)
                     const categories = activeData.map(d => d.month);
-                    let seriesData = activeData.map(d => parseFloat(d[kpi.dataKey] || 0));
+                    let seriesData = activeData.map(d => getDocValue(d, kpi));
                     
                     // Adicionar Predição para Visão Global ou YTD
                     let forecastCount = 0;
