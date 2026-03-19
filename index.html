@@ -142,7 +142,7 @@
         ];
 
         // ==========================================
-        // CONFIGURAÇÃO DOS FORMULÁRIOS (Cálculos automáticos)
+        // CONFIGURAÇÃO DOS FORMULÁRIOS E FÓRMULAS
         // ==========================================
         const formDefinitions = {
             ig: {
@@ -150,8 +150,8 @@
                 fields: [
                     { id: 'inv', label: 'Valor Total Investido (R$)' },
                     { id: 'imp', label: 'Impressões Totais' },
-                    { id: 'int', label: 'Interações (Curtidas, Comentários, Share)' },
-                    { id: 'alc', label: 'Alcance Total' },
+                    { id: 'int', label: 'Interações (Curtidas + Coment. + Share)' },
+                    { id: 'alc', label: 'Alcance Total da Publicação' },
                     { id: 'cli', label: 'Visitas ao Perfil / Cliques' },
                     { id: 'seg', label: 'Novos Seguidores Retidos' }
                 ],
@@ -202,7 +202,7 @@
                 fields: [
                     { id: 'inv', label: 'Valor Total Investido (R$)' },
                     { id: 'views', label: 'Total de Visualizações' },
-                    { id: 'int', label: 'Interações Totais' },
+                    { id: 'int', label: 'Interações Totais (Curt+Com+Share)' },
                     { id: 'alc', label: 'Alcance Total' },
                     { id: 'share', label: 'Compartilhamentos' }
                 ],
@@ -275,7 +275,7 @@
             }
         };
 
-        // Dados de Fallback Iniciais (Zerados) para evitar erros
+        // Dados de Fallback Iniciais (Zerados)
         const fallbackMonthlyData = monthsInfo.map(m => ({
             month: m.m, quarter: m.q, timestamp: m.t,
             g_alc:0, g_cpm:0, g_views:0, g_evt:0,
@@ -288,7 +288,6 @@
             evt_sat:0, evt_real:0, evt_plan:0, evt_part:0
         }));
 
-        // Utilitários de Formatação
         const formatNumber = (num) => new Intl.NumberFormat('pt-BR', { notation: "compact", compactDisplay: "short" }).format(num || 0);
         const formatCurrency = (num) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(num || 0);
         const formatPercent = (num) => `${Number(num || 0).toFixed(1).replace('.', ',')}%`;
