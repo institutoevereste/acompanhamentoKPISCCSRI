@@ -149,9 +149,9 @@
             li: { title: 'Marketing: LinkedIn', icon: 'linkedin', fields: [{ id: 'li_cpc', label: 'CPC (Custo por Clique)' }, { id: 'li_cpm', label: 'CPM (Custo por Mil Impressões)' }, { id: 'li_foll', label: 'Novos Seguidores' }, { id: 'li_er', label: 'ER (Engajamento em %)' }] },
             yt: { title: 'Marketing: YouTube', icon: 'youtube', fields: [{ id: 'yt_pmv', label: 'PMV (Retenção de Vídeo em %)' }, { id: 'yt_vvr', label: 'VVR (Total Visualizações)' }, { id: 'yt_subs', label: 'Inscrições' }, { id: 'yt_imp', label: 'Impressões' }] },
             tk: { title: 'Marketing: TikTok', icon: 'smartphone', fields: [{ id: 'tk_tv', label: 'TV (Total Visualizações)' }, { id: 'tk_er', label: 'ER (Engajamento em %)' }, { id: 'tk_share', label: 'Compartilhamentos' }, { id: 'tk_cpv', label: 'CPV (Custo por View R$)' }] },
-            jor: { title: 'Jornalismo', icon: 'file-text', fields: [{ id: 'jor_mat', label: 'Quantidade de Matérias Publicadas' }, { id: 'jor_views', label: 'Visualizações por Matéria' }, { id: 'jor_ret', label: 'Taxa de Retenção de Leitura (%)' }] },
-            evt: { title: 'Promoção de Eventos', icon: 'calendar-days', fields: [{ id: 'evt_exec', label: 'Taxa de Execução' }, { id: 'evt_sat', label: 'Satisfação Geral (%)' }, { id: 'evt_real', label: 'Eventos Realizados' }, { id: 'evt_plan', label: 'Eventos Planejados' }, { id: 'evt_part', label: 'Taxa de Participação (Total Pessoas)' }] },
-            soc: { title: 'Socioambiental', icon: 'recycle', fields: [{ id: 'soc_res', label: 'Resíduos Reciclados (kg)' }, { id: 'soc_colab', label: 'Colaboradores Capacitados' }, { id: 'soc_cap', label: 'Capacitação Comunidade' }, { id: 'soc_proj', label: 'N° de Projetos Atendidos' }] },
+            jor: { title: 'Jornalismo', icon: 'file-text', fields: [{ id: 'jor_mat', label: 'Matérias Publicadas (Portal+blog)' }, { id: 'jor_views', label: 'Visualizações por Matéria' }, { id: 'jor_ret', label: 'Taxa de Retenção de Leitura (%)' }] },
+            evt: { title: 'Promoção de Eventos', icon: 'calendar-days', fields: [{ id: 'evt_sat', label: 'Satisfação Geral (%)' }, { id: 'evt_real', label: 'Eventos Realizados' }, { id: 'evt_plan', label: 'Eventos Planejados' }, { id: 'evt_part', label: 'Taxa de Participação (Total Pessoas)' }] },
+            soc: { title: 'Socioambiental', icon: 'recycle', fields: [{ id: 'soc_res', label: 'Resíduos Reciclados (%)' }, { id: 'soc_colab', label: 'Colaboradores Capacitados (%)' }, { id: 'soc_cap', label: 'Capacitação Comunidade' }, { id: 'soc_proj', label: 'N° de Projetos e Beneficiários (%)' }] },
             glb: { title: 'Dados Globais Institucionais', icon: 'globe', fields: [{ id: 'g_alc', label: 'Alcance Total Institucional' }, { id: 'g_cpm', label: 'CPM Médio Global' }, { id: 'g_views', label: 'Visualizações Globais' }, { id: 'g_evt', label: 'Total Eventos Institucionais' }] }
         };
 
@@ -183,7 +183,7 @@
                 { id: 'g1', title: "Alcance Total", iconName: "users", dataKeys: ["g_alc", "ig_alc", "yt_imp"], chartType: "area", format: "number", numericTarget: 1400000, inverseLogic: false, agg: 'sum' },
                 { id: 'g2', title: "CPM Médio Global", iconName: "target", dataKeys: ["g_cpm", "ig_cpm", "li_cpm"], chartType: "line", format: "currency", numericTarget: 4.00, inverseLogic: true, agg: 'avg' },
                 { id: 'g3', title: "Visualizações", iconName: "layout-dashboard", dataKeys: ["g_views", "yt_vvr", "tk_tv", "jor_views"], chartType: "bar", format: "number", numericTarget: 3000, inverseLogic: false, agg: 'sum' },
-                { id: 'g4', title: "Eventos Institucionais", iconName: "calendar-days", dataKeys: ["g_evt", "evt_real"], chartType: "bar", format: "number", numericTarget: 35, inverseLogic: false, agg: 'sum' },
+                { id: 'g4', title: "Eventos Institucionais", iconName: "calendar-days", dataKeys: ["g_evt", "evt_real"], chartType: "bar", format: "number", numericTarget: 32, inverseLogic: false, agg: 'sum' },
             ],
             mkt: {
                 instagram: [
@@ -214,22 +214,21 @@
                 ]
             },
             jor: [
-                { id: 'j1', title: "Matérias Publicadas", iconName: "file-text", dataKey: "jor_mat", chartType: "bar", format: "number", numericTarget: 2, inverseLogic: false, agg: 'sum' },
+                { id: 'j1', title: "Matérias Publicadas", iconName: "file-text", dataKey: "jor_mat", chartType: "bar", format: "number", numericTarget: 6, inverseLogic: false, agg: 'sum' },
                 { id: 'j2', title: "Vis. por Matéria", iconName: "users", dataKey: "jor_views", chartType: "area", format: "number", numericTarget: 100, inverseLogic: false, agg: 'avg' },
                 { id: 'j3', title: "Retenção de Leitura", iconName: "clock", dataKey: "jor_ret", chartType: "line", format: "percent", numericTarget: 40.0, inverseLogic: false, agg: 'avg' }
             ],
             soc: [
-                { id: 's1', title: "Resíduos Reciclados", iconName: "recycle", dataKey: "soc_res", chartType: "area", format: "number", numericTarget: 200, inverseLogic: false, agg: 'sum' },
-                { id: 's2', title: "Colab. Capacitados", iconName: "users", dataKey: "soc_colab", chartType: "bar", format: "number", numericTarget: 70, inverseLogic: false, agg: 'sum' },
+                { id: 's1', title: "Resíduos Reciclados", iconName: "recycle", dataKey: "soc_res", chartType: "area", format: "percent", numericTarget: 20.0, inverseLogic: false, agg: 'avg' },
+                { id: 's2', title: "Colab. Capacitados", iconName: "users", dataKey: "soc_colab", chartType: "bar", format: "percent", numericTarget: 70.0, inverseLogic: false, agg: 'avg' },
                 { id: 's3', title: "Capacitação Comunidade", iconName: "graduation-cap", dataKey: "soc_cap", chartType: "line", format: "number", numericTarget: 150, inverseLogic: false, agg: 'sum' },
-                { id: 's4', title: "Projetos Atendidos", iconName: "folder-heart", dataKey: "soc_proj", chartType: "bar", format: "number", numericTarget: 2, inverseLogic: false, agg: 'sum' },
+                { id: 's4', title: "Projetos e Benef.", iconName: "folder-heart", dataKey: "soc_proj", chartType: "bar", format: "percent", numericTarget: 20.0, inverseLogic: false, agg: 'avg' },
             ],
             evt: [
-                { id: 'e1', title: "Taxa de Execução", iconName: "bar-chart-2", dataKey: "evt_exec", chartType: "line", format: "number", numericTarget: 36, inverseLogic: false, agg: 'avg' },
-                { id: 'e2', title: "Satisfação Geral", iconName: "smile", dataKey: "evt_sat", chartType: "area", format: "percent", numericTarget: 85.0, inverseLogic: false, agg: 'avg' },
-                { id: 'e3', title: "Eventos Realizados", iconName: "calendar-days", dataKey: "evt_real", chartType: "bar", format: "number", numericTarget: 35, inverseLogic: false, agg: 'sum' },
-                { id: 'e4', title: "Eventos Planejados", iconName: "calendar-clock", dataKey: "evt_plan", chartType: "bar", format: "number", numericTarget: 35, inverseLogic: false, agg: 'sum' },
-                { id: 'e5', title: "Taxa de Participação", iconName: "users", dataKey: "evt_part", chartType: "line", format: "number", numericTarget: 600, inverseLogic: false, agg: 'avg' },
+                { id: 'e1', title: "Satisfação Geral", iconName: "smile", dataKey: "evt_sat", chartType: "area", format: "percent", numericTarget: 85.0, inverseLogic: false, agg: 'avg' },
+                { id: 'e2', title: "Eventos Realizados", iconName: "calendar-days", dataKey: "evt_real", chartType: "bar", format: "number", numericTarget: 32, inverseLogic: false, agg: 'sum' },
+                { id: 'e3', title: "Eventos Planejados", iconName: "calendar-clock", dataKey: "evt_plan", chartType: "bar", format: "number", numericTarget: 32, inverseLogic: false, agg: 'sum' },
+                { id: 'e4', title: "Taxa de Participação", iconName: "users", dataKey: "evt_part", chartType: "line", format: "number", numericTarget: 600, inverseLogic: false, agg: 'sum' },
             ]
         };
 
