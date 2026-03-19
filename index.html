@@ -150,18 +150,20 @@
                 fields: [
                     { id: 'inv', label: 'Valor Total Investido (R$)' },
                     { id: 'imp', label: 'Impressões Totais' },
-                    { id: 'int', label: 'Interações (Curtidas + Coment. + Share)' },
+                    { id: 'int', label: 'Interações Totais (Curtidas + Coment. + Share)' },
                     { id: 'alc', label: 'Alcance Total da Publicação' },
+                    { id: 'seg_tot', label: 'Base Total de Seguidores' },
                     { id: 'cli', label: 'Visitas ao Perfil / Cliques' },
-                    { id: 'seg', label: 'Novos Seguidores Retidos' }
+                    { id: 'seg_ret', label: 'Novos Seguidores Retidos' }
                 ],
                 calculate: (v) => ({
                     ig_cpm: v.imp ? (v.inv / v.imp) * 1000 : 0,
                     ig_er: v.alc ? (v.int / v.alc) * 100 : 0,
                     ig_ctr: v.imp ? (v.cli / v.imp) * 100 : 0,
-                    ig_alc: v.alc || 0,
+                    // ALC = Alcance / Total Seguidores * 100
+                    ig_alc: v.seg_tot ? (v.alc / v.seg_tot) * 100 : 0, 
                     ig_iec: v.inv ? (v.alc / v.inv) * 100 : 0,
-                    ig_cps: v.seg ? (v.inv / v.seg) : 0
+                    ig_cps: v.seg_ret ? (v.inv / v.seg_ret) : 0
                 })
             },
             li: {
@@ -217,13 +219,14 @@
                 title: 'Jornalismo', icon: 'file-text',
                 fields: [
                     { id: 'mat', label: 'Qtd de Matérias Publicadas' },
-                    { id: 'views', label: 'Visualizações Totais nas Matérias' },
+                    { id: 'views', label: 'Visualizações Totais (Soma de todas as matérias)' },
                     { id: 'ret', label: 'Retenção Média de Leitura (%)' },
                     { id: 'cli', label: 'Cliques no Portal' }
                 ],
                 calculate: (v) => ({
                     jor_mat: v.mat || 0,
-                    jor_views: v.views || 0,
+                    // A média de Visualizações por Matéria
+                    jor_views: v.mat ? (v.views / v.mat) : 0,
                     jor_ret: v.ret || 0,
                     jor_clicks: v.cli || 0
                 })
@@ -313,7 +316,8 @@
                     { id: 'i1', title: "Custo Mil Impressões (CPM)", target: formatCurrency(8.00), trend: "", isPositive: true, status: "green", iconName: "target", inverseLogic: true, dataKey: "ig_cpm", chartType: "line", format: "currency", numericTarget: 8.00 },
                     { id: 'i2', title: "Taxa de Engajamento (ER)", target: "2,0%", trend: "", isPositive: true, status: "green", iconName: "activity", dataKey: "ig_er", chartType: "bar", format: "percent", numericTarget: 2.0 },
                     { id: 'i3', title: "Taxa de Cliques (CTR)", target: "1,88%", trend: "", isPositive: false, status: "red", iconName: "mouse-pointer-click", dataKey: "ig_ctr", chartType: "line", format: "percent", numericTarget: 1.88 },
-                    { id: 'i4', title: "Alcance (ALC)", target: formatNumber(700000), trend: "", isPositive: false, status: "red", iconName: "users", dataKey: "ig_alc", chartType: "area", format: "number", numericTarget: 700000 },
+                    // ALC no Instagram atualizado para Porcentagem conforme fórmula!
+                    { id: 'i4', title: "Alcance Institucional (ALC)", target: "20,0%", trend: "", isPositive: true, status: "green", iconName: "users", dataKey: "ig_alc", chartType: "area", format: "percent", numericTarget: 20.0 },
                     { id: 'i5', title: "Eficiência Cobertura (IEC)", target: formatNumber(6250), trend: "", isPositive: true, status: "green", iconName: "activity", dataKey: "ig_iec", chartType: "bar", format: "number", numericTarget: 6250 },
                     { id: 'i6', title: "Custo p/ Seguidor (CPS)", target: formatCurrency(4.00), trend: "", isPositive: true, status: "green", iconName: "users", inverseLogic: true, dataKey: "ig_cps", chartType: "line", format: "currency", numericTarget: 4.00 },
                 ],
@@ -338,7 +342,7 @@
             },
             jor: [
                 { id: 'j1', title: "Matérias Publicadas", target: "6", trend: "", isPositive: false, status: "red", iconName: "file-text", dataKey: "jor_mat", chartType: "bar", format: "number", numericTarget: 6 },
-                { id: 'j2', title: "Vis. por Matéria", target: "100", trend: "", isPositive: true, status: "green", iconName: "users", dataKey: "jor_views", chartType: "area", format: "number", numericTarget: 100 },
+                { id: 'j2', title: "Vis. por Matéria (Média)", target: "100", trend: "", isPositive: true, status: "green", iconName: "users", dataKey: "jor_views", chartType: "area", format: "number", numericTarget: 100 },
                 { id: 'j3', title: "Retenção de Leitura", target: "40,0%", trend: "", isPositive: false, status: "yellow", iconName: "clock", dataKey: "jor_ret", chartType: "line", format: "percent", numericTarget: 40.0 },
                 { id: 'j4', title: "Cliques no Portal", target: formatNumber(1000), trend: "", isPositive: true, status: "green", iconName: "mouse-pointer-click", dataKey: "jor_clicks", chartType: "bar", format: "number", numericTarget: 1000 },
             ],
