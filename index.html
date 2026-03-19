@@ -129,7 +129,6 @@
             firebaseData: [],
             charts: [],
             
-            // Estado do formulário de entrada manual
             entryMonth: 'Jan',
             entryCategory: 'ig'
         };
@@ -142,143 +141,86 @@
         ];
 
         // ==========================================
-        // CONFIGURAÇÃO DOS FORMULÁRIOS E FÓRMULAS
+        // CONFIGURAÇÃO DOS FORMULÁRIOS E CAMPOS (Alinhado 100% c/ Imagens)
         // ==========================================
         const formDefinitions = {
             ig: {
                 title: 'Marketing: Instagram', icon: 'instagram',
                 fields: [
-                    { id: 'inv', label: 'Valor Total Investido (R$)' },
-                    { id: 'imp', label: 'Impressões Totais' },
-                    { id: 'int', label: 'Interações Totais (Curtidas + Coment. + Share)' },
-                    { id: 'alc', label: 'Alcance Total da Publicação' },
-                    { id: 'seg_tot', label: 'Base Total de Seguidores' },
-                    { id: 'cli', label: 'Visitas ao Perfil / Cliques' },
-                    { id: 'seg_ret', label: 'Novos Seguidores Retidos' }
-                ],
-                calculate: (v) => ({
-                    ig_cpm: v.imp ? (v.inv / v.imp) * 1000 : 0,
-                    ig_er: v.alc ? (v.int / v.alc) * 100 : 0,
-                    ig_ctr: v.imp ? (v.cli / v.imp) * 100 : 0,
-                    // ALC = Alcance / Total Seguidores * 100
-                    ig_alc: v.seg_tot ? (v.alc / v.seg_tot) * 100 : 0, 
-                    ig_iec: v.inv ? (v.alc / v.inv) * 100 : 0,
-                    ig_cps: v.seg_ret ? (v.inv / v.seg_ret) : 0
-                })
+                    { id: 'ig_cpm', label: 'CPM (Custo por Mil Impressões)' },
+                    { id: 'ig_er', label: 'ER (Engajamento em %)' },
+                    { id: 'ig_ctr', label: 'CTR (Taxa de Cliques em %)' },
+                    { id: 'ig_alc', label: 'ALC (Alcance Absoluto)' },
+                    { id: 'ig_iec', label: 'IEC (Índice Eficiência Cobertura)' },
+                    { id: 'ig_cps', label: 'CPS (Custo por Seguidor R$)' }
+                ]
             },
             li: {
                 title: 'Marketing: LinkedIn', icon: 'linkedin',
                 fields: [
-                    { id: 'inv', label: 'Valor Total Investido (R$)' },
-                    { id: 'cli', label: 'Cliques Totais' },
-                    { id: 'imp', label: 'Impressões Totais' },
-                    { id: 'seg', label: 'Novos Seguidores' },
-                    { id: 'int', label: 'Interações Totais' },
-                    { id: 'alc', label: 'Alcance Total' }
-                ],
-                calculate: (v) => ({
-                    li_cpc: v.cli ? (v.inv / v.cli) : 0,
-                    li_cpm: v.imp ? (v.inv / v.imp) * 1000 : 0,
-                    li_foll: v.seg || 0,
-                    li_er: v.alc ? (v.int / v.alc) * 100 : 0
-                })
+                    { id: 'li_cpc', label: 'CPC (Custo por Clique)' },
+                    { id: 'li_cpm', label: 'CPM (Custo por Mil Impressões)' },
+                    { id: 'li_foll', label: 'Novos Seguidores' },
+                    { id: 'li_er', label: 'ER (Engajamento em %)' }
+                ]
             },
             yt: {
                 title: 'Marketing: YouTube', icon: 'youtube',
                 fields: [
-                    { id: 'tm', label: 'Tempo Médio Visualização (min)' },
-                    { id: 'dt', label: 'Duração Total dos Vídeos (min)' },
-                    { id: 'views', label: 'Total de Visualizações' },
-                    { id: 'subs', label: 'Novas Inscrições' },
-                    { id: 'imp', label: 'Impressões' }
-                ],
-                calculate: (v) => ({
-                    yt_pmv: v.dt ? (v.tm / v.dt) * 100 : 0,
-                    yt_vvr: v.views || 0,
-                    yt_subs: v.subs || 0,
-                    yt_imp: v.imp || 0
-                })
+                    { id: 'yt_pmv', label: 'PMV (Retenção de Vídeo em %)' },
+                    { id: 'yt_vvr', label: 'VVR (Total Visualizações)' },
+                    { id: 'yt_subs', label: 'Inscrições' },
+                    { id: 'yt_imp', label: 'Impressões' }
+                ]
             },
             tk: {
                 title: 'Marketing: TikTok', icon: 'smartphone',
                 fields: [
-                    { id: 'inv', label: 'Valor Total Investido (R$)' },
-                    { id: 'views', label: 'Total de Visualizações' },
-                    { id: 'int', label: 'Interações Totais (Curt+Com+Share)' },
-                    { id: 'alc', label: 'Alcance Total' },
-                    { id: 'share', label: 'Compartilhamentos' }
-                ],
-                calculate: (v) => ({
-                    tk_tv: v.views || 0,
-                    tk_er: v.alc ? (v.int / v.alc) * 100 : 0,
-                    tk_share: v.share || 0,
-                    tk_cpv: v.views ? (v.inv / v.views) : 0
-                })
+                    { id: 'tk_tv', label: 'TV (Total Visualizações)' },
+                    { id: 'tk_er', label: 'ER (Engajamento em %)' },
+                    { id: 'tk_share', label: 'Compartilhamentos' },
+                    { id: 'tk_cpv', label: 'CPV (Custo por View R$)' }
+                ]
             },
             jor: {
                 title: 'Jornalismo', icon: 'file-text',
                 fields: [
-                    { id: 'mat', label: 'Qtd de Matérias Publicadas' },
-                    { id: 'views', label: 'Visualizações Totais (Soma de todas as matérias)' },
-                    { id: 'ret', label: 'Retenção Média de Leitura (%)' },
-                    { id: 'cli', label: 'Cliques no Portal' }
-                ],
-                calculate: (v) => ({
-                    jor_mat: v.mat || 0,
-                    // A média de Visualizações por Matéria
-                    jor_views: v.mat ? (v.views / v.mat) : 0,
-                    jor_ret: v.ret || 0,
-                    jor_clicks: v.cli || 0
-                })
+                    { id: 'jor_mat', label: 'Quantidade de Matérias Publicadas' },
+                    { id: 'jor_views', label: 'Visualizações por Matéria' },
+                    { id: 'jor_ret', label: 'Taxa de Retenção de Leitura (%)' }
+                ]
             },
             evt: {
                 title: 'Promoção de Eventos', icon: 'calendar-days',
                 fields: [
-                    { id: 'sat', label: 'Satisfação Geral das Pesquisas (%)' },
-                    { id: 'real', label: 'Eventos Realizados no Mês' },
-                    { id: 'plan', label: 'Eventos Planejados' },
-                    { id: 'part', label: 'Total de Participantes (Soma)' }
-                ],
-                calculate: (v) => ({
-                    evt_sat: v.sat || 0,
-                    evt_real: v.real || 0,
-                    evt_plan: v.plan || 0,
-                    evt_part: v.part || 0
-                })
+                    { id: 'evt_exec', label: 'Taxa de Execução' },
+                    { id: 'evt_sat', label: 'Satisfação Geral (%)' },
+                    { id: 'evt_real', label: 'Eventos Realizados' },
+                    { id: 'evt_plan', label: 'Eventos Planejados' },
+                    { id: 'evt_part', label: 'Taxa de Participação (Total Pessoas)' }
+                ]
             },
             soc: {
                 title: 'Socioambiental', icon: 'recycle',
                 fields: [
-                    { id: 'res', label: 'Resíduos Reciclados (kg)' },
-                    { id: 'colab', label: 'Colaboradores Capacitados' },
-                    { id: 'cap', label: 'Comunidade Capacitada' },
-                    { id: 'proj', label: 'Projetos Atendidos' }
-                ],
-                calculate: (v) => ({
-                    soc_res: v.res || 0,
-                    soc_colab: v.colab || 0,
-                    soc_cap: v.cap || 0,
-                    soc_proj: v.proj || 0
-                })
+                    { id: 'soc_res', label: 'Resíduos Reciclados (kg)' },
+                    { id: 'soc_colab', label: 'Colaboradores Capacitados' },
+                    { id: 'soc_cap', label: 'Capacitação Comunidade' },
+                    { id: 'soc_proj', label: 'N° de Projetos Atendidos' }
+                ]
             },
             glb: {
                 title: 'Dados Globais Institucionais', icon: 'globe',
                 fields: [
-                    { id: 'alc', label: 'Alcance Total Institucional' },
-                    { id: 'cpm', label: 'CPM Médio Global (R$)' },
-                    { id: 'views', label: 'Visualizações Globais (Todos os Canais)' },
-                    { id: 'evt', label: 'Total Eventos Institucionais' }
-                ],
-                calculate: (v) => ({
-                    g_alc: v.alc || 0,
-                    g_cpm: v.cpm || 0,
-                    g_views: v.views || 0,
-                    g_evt: v.evt || 0
-                })
+                    { id: 'g_alc', label: 'Alcance Total Institucional' },
+                    { id: 'g_cpm', label: 'CPM Médio Global' },
+                    { id: 'g_views', label: 'Visualizações Globais' },
+                    { id: 'g_evt', label: 'Total Eventos Institucionais' }
+                ]
             }
         };
 
-        // Dados de Fallback Iniciais (Zerados)
+        // Fallback Inicial Limpo
         const fallbackMonthlyData = monthsInfo.map(m => ({
             month: m.m, quarter: m.q, timestamp: m.t,
             g_alc:0, g_cpm:0, g_views:0, g_evt:0,
@@ -286,14 +228,15 @@
             li_cpc:0, li_cpm:0, li_foll:0, li_er:0,
             yt_pmv:0, yt_vvr:0, yt_subs:0, yt_imp:0,
             tk_tv:0, tk_er:0, tk_share:0, tk_cpv:0,
-            jor_mat:0, jor_views:0, jor_ret:0, jor_clicks:0,
+            jor_mat:0, jor_views:0, jor_ret:0,
             soc_res:0, soc_colab:0, soc_cap:0, soc_proj:0,
-            evt_sat:0, evt_real:0, evt_plan:0, evt_part:0
+            evt_exec:0, evt_sat:0, evt_real:0, evt_plan:0, evt_part:0
         }));
 
+        // Formatadores
         const formatNumber = (num) => new Intl.NumberFormat('pt-BR', { notation: "compact", compactDisplay: "short" }).format(num || 0);
         const formatCurrency = (num) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(num || 0);
-        const formatPercent = (num) => `${Number(num || 0).toFixed(1).replace('.', ',')}%`;
+        const formatPercent = (num) => `${Number(num || 0).toFixed(2).replace('.', ',')}%`;
         
         const formatValue = (val, type) => {
             if (type === 'currency') return formatCurrency(val);
@@ -302,61 +245,61 @@
         };
 
         // ==========================================
-        // CONFIGURAÇÃO DOS KPIs E METAS (Baseado nos Manuais)
+        // DICIONÁRIO DE KPIs, METAS E REGRAS (Crucial para o Motor de Farol)
         // ==========================================
+        // InverseLogic: TRUE = Quanto Menor, Melhor (Ex: Custo). FALSE = Quanto Maior, Melhor (Ex: Alcance)
         const kpiDataByArea = {
             global: [
-                { id: 'g1', title: "Alcance Total (Acumulado)", target: formatNumber(1400000), trend: "Meta", isPositive: true, status: "green", iconName: "users", dataKey: "g_alc", chartType: "area", format: "number", numericTarget: 1400000 },
-                { id: 'g2', title: "Custo M. Impressões (CPM)", target: formatCurrency(4.00), trend: "Meta", isPositive: true, status: "green", iconName: "target", inverseLogic: true, dataKey: "g_cpm", chartType: "line", format: "currency", numericTarget: 4.00 },
-                { id: 'g3', title: "Visualizações Globais", target: formatNumber(3000), trend: "Meta", isPositive: false, status: "yellow", iconName: "layout-dashboard", dataKey: "g_views", chartType: "bar", format: "number", numericTarget: 3000 },
-                { id: 'g4', title: "Eventos Institucionais", target: "35", trend: "Meta", isPositive: false, status: "red", iconName: "calendar-days", dataKey: "g_evt", chartType: "bar", format: "number", numericTarget: 35 },
+                { id: 'g1', title: "Alcance Total Institucional", iconName: "users", dataKey: "g_alc", chartType: "area", format: "number", numericTarget: 1400000, inverseLogic: false },
+                { id: 'g2', title: "CPM Médio Global", iconName: "target", dataKey: "g_cpm", chartType: "line", format: "currency", numericTarget: 4.00, inverseLogic: true },
+                { id: 'g3', title: "Visualizações Globais", iconName: "layout-dashboard", dataKey: "g_views", chartType: "bar", format: "number", numericTarget: 3000, inverseLogic: false },
+                { id: 'g4', title: "Eventos Institucionais", iconName: "calendar-days", dataKey: "g_evt", chartType: "bar", format: "number", numericTarget: 35, inverseLogic: false },
             ],
             mkt: {
                 instagram: [
-                    { id: 'i1', title: "Custo Mil Impressões (CPM)", target: formatCurrency(8.00), trend: "", isPositive: true, status: "green", iconName: "target", inverseLogic: true, dataKey: "ig_cpm", chartType: "line", format: "currency", numericTarget: 8.00 },
-                    { id: 'i2', title: "Taxa de Engajamento (ER)", target: "2,0%", trend: "", isPositive: true, status: "green", iconName: "activity", dataKey: "ig_er", chartType: "bar", format: "percent", numericTarget: 2.0 },
-                    { id: 'i3', title: "Taxa de Cliques (CTR)", target: "1,88%", trend: "", isPositive: false, status: "red", iconName: "mouse-pointer-click", dataKey: "ig_ctr", chartType: "line", format: "percent", numericTarget: 1.88 },
-                    // ALC no Instagram atualizado para Porcentagem conforme fórmula!
-                    { id: 'i4', title: "Alcance Institucional (ALC)", target: "20,0%", trend: "", isPositive: true, status: "green", iconName: "users", dataKey: "ig_alc", chartType: "area", format: "percent", numericTarget: 20.0 },
-                    { id: 'i5', title: "Eficiência Cobertura (IEC)", target: formatNumber(6250), trend: "", isPositive: true, status: "green", iconName: "activity", dataKey: "ig_iec", chartType: "bar", format: "number", numericTarget: 6250 },
-                    { id: 'i6', title: "Custo p/ Seguidor (CPS)", target: formatCurrency(4.00), trend: "", isPositive: true, status: "green", iconName: "users", inverseLogic: true, dataKey: "ig_cps", chartType: "line", format: "currency", numericTarget: 4.00 },
+                    { id: 'i1', title: "CPM", iconName: "target", dataKey: "ig_cpm", chartType: "line", format: "currency", numericTarget: 8.00, inverseLogic: true },
+                    { id: 'i2', title: "ER (Engajamento)", iconName: "activity", dataKey: "ig_er", chartType: "bar", format: "percent", numericTarget: 2.0, inverseLogic: false },
+                    { id: 'i3', title: "CTR (Taxa de Cliques)", iconName: "mouse-pointer-click", dataKey: "ig_ctr", chartType: "line", format: "percent", numericTarget: 1.88, inverseLogic: false },
+                    { id: 'i4', title: "ALC (Alcance)", iconName: "users", dataKey: "ig_alc", chartType: "area", format: "number", numericTarget: 700000, inverseLogic: false },
+                    { id: 'i5', title: "IEC (Índice Cobertura)", iconName: "activity", dataKey: "ig_iec", chartType: "bar", format: "number", numericTarget: 6250, inverseLogic: false },
+                    { id: 'i6', title: "CPS (Custo/Seguidor)", iconName: "users", dataKey: "ig_cps", chartType: "line", format: "currency", numericTarget: 4.00, inverseLogic: true },
                 ],
                 linkedin: [
-                    { id: 'l1', title: "Custo por Clique (CPC)", target: formatCurrency(40.00), trend: "", isPositive: true, status: "green", iconName: "mouse-pointer-click", inverseLogic: true, dataKey: "li_cpc", chartType: "line", format: "currency", numericTarget: 40.00 },
-                    { id: 'l2', title: "Custo Mil Impressões (CPM)", target: formatCurrency(15.00), trend: "", isPositive: true, status: "green", iconName: "target", inverseLogic: true, dataKey: "li_cpm", chartType: "line", format: "currency", numericTarget: 15.00 },
-                    { id: 'l3', title: "Novos Seguidores", target: "500", trend: "", isPositive: false, status: "yellow", iconName: "users", dataKey: "li_foll", chartType: "area", format: "number", numericTarget: 500 },
-                    { id: 'l4', title: "Taxa de Engajamento (ER)", target: "3,0%", trend: "", isPositive: true, status: "green", iconName: "activity", dataKey: "li_er", chartType: "bar", format: "percent", numericTarget: 3.0 },
+                    { id: 'l1', title: "CPC", iconName: "mouse-pointer-click", dataKey: "li_cpc", chartType: "line", format: "currency", numericTarget: 40.00, inverseLogic: true },
+                    { id: 'l2', title: "CPM", iconName: "target", dataKey: "li_cpm", chartType: "line", format: "currency", numericTarget: 15.00, inverseLogic: true },
+                    { id: 'l3', title: "Novos Seguidores", iconName: "users", dataKey: "li_foll", chartType: "area", format: "number", numericTarget: 500, inverseLogic: false },
+                    { id: 'l4', title: "ER (Engajamento)", iconName: "activity", dataKey: "li_er", chartType: "bar", format: "percent", numericTarget: 3.0, inverseLogic: false },
                 ],
                 youtube: [
-                    { id: 'y1', title: "Retenção de Vídeo (PMV)", target: "50%", trend: "", isPositive: false, status: "yellow", iconName: "clock", dataKey: "yt_pmv", chartType: "area", format: "percent", numericTarget: 50 },
-                    { id: 'y2', title: "Visualizações (VVR)", target: formatNumber(10000), trend: "", isPositive: true, status: "green", iconName: "youtube", dataKey: "yt_vvr", chartType: "bar", format: "number", numericTarget: 10000 },
-                    { id: 'y3', title: "Inscrições", target: "200", trend: "", isPositive: false, status: "red", iconName: "users", dataKey: "yt_subs", chartType: "line", format: "number", numericTarget: 200 },
-                    { id: 'y4', title: "Impressões", target: formatNumber(100000), trend: "", isPositive: false, status: "yellow", iconName: "target", dataKey: "yt_imp", chartType: "area", format: "number", numericTarget: 100000 },
+                    { id: 'y1', title: "PMV (Retenção)", iconName: "clock", dataKey: "yt_pmv", chartType: "area", format: "percent", numericTarget: 50.0, inverseLogic: false },
+                    { id: 'y2', title: "VVR (Visualizações)", iconName: "youtube", dataKey: "yt_vvr", chartType: "bar", format: "number", numericTarget: 10000, inverseLogic: false },
+                    { id: 'y3', title: "Inscrições", iconName: "users", dataKey: "yt_subs", chartType: "line", format: "number", numericTarget: 200, inverseLogic: false },
+                    { id: 'y4', title: "Impressões", iconName: "target", dataKey: "yt_imp", chartType: "area", format: "number", numericTarget: 100000, inverseLogic: false },
                 ],
                 tiktok: [
-                    { id: 't1', title: "Total Visualizações (TV)", target: formatNumber(30000), trend: "", isPositive: true, status: "green", iconName: "smartphone", dataKey: "tk_tv", chartType: "bar", format: "number", numericTarget: 30000 },
-                    { id: 't2', title: "Taxa de Engajamento (ER)", target: "5,0%", trend: "", isPositive: true, status: "green", iconName: "activity", dataKey: "tk_er", chartType: "line", format: "percent", numericTarget: 5.0 },
-                    { id: 't3', title: "Compartilhamentos", target: "500", trend: "", isPositive: true, status: "green", iconName: "file-text", dataKey: "tk_share", chartType: "area", format: "number", numericTarget: 500 },
-                    { id: 't4', title: "Custo por View (CPV)", target: formatCurrency(0.05), trend: "", isPositive: true, status: "green", iconName: "target", inverseLogic: true, dataKey: "tk_cpv", chartType: "line", format: "currency", numericTarget: 0.05 },
+                    { id: 't1', title: "TV (Visuais Totais)", iconName: "smartphone", dataKey: "tk_tv", chartType: "bar", format: "number", numericTarget: 30000, inverseLogic: false },
+                    { id: 't2', title: "ER (Engajamento)", iconName: "activity", dataKey: "tk_er", chartType: "line", format: "percent", numericTarget: 5.0, inverseLogic: false },
+                    { id: 't3', title: "Compartilhamentos", iconName: "file-text", dataKey: "tk_share", chartType: "area", format: "number", numericTarget: 500, inverseLogic: false },
+                    { id: 't4', title: "CPV (Custo por View)", iconName: "target", dataKey: "tk_cpv", chartType: "line", format: "currency", numericTarget: 0.05, inverseLogic: true },
                 ]
             },
             jor: [
-                { id: 'j1', title: "Matérias Publicadas", target: "6", trend: "", isPositive: false, status: "red", iconName: "file-text", dataKey: "jor_mat", chartType: "bar", format: "number", numericTarget: 6 },
-                { id: 'j2', title: "Vis. por Matéria (Média)", target: "100", trend: "", isPositive: true, status: "green", iconName: "users", dataKey: "jor_views", chartType: "area", format: "number", numericTarget: 100 },
-                { id: 'j3', title: "Retenção de Leitura", target: "40,0%", trend: "", isPositive: false, status: "yellow", iconName: "clock", dataKey: "jor_ret", chartType: "line", format: "percent", numericTarget: 40.0 },
-                { id: 'j4', title: "Cliques no Portal", target: formatNumber(1000), trend: "", isPositive: true, status: "green", iconName: "mouse-pointer-click", dataKey: "jor_clicks", chartType: "bar", format: "number", numericTarget: 1000 },
+                { id: 'j1', title: "Matérias Publicadas", iconName: "file-text", dataKey: "jor_mat", chartType: "bar", format: "number", numericTarget: 2, inverseLogic: false },
+                { id: 'j2', title: "Vis. por Matéria", iconName: "users", dataKey: "jor_views", chartType: "area", format: "number", numericTarget: 100, inverseLogic: false },
+                { id: 'j3', title: "Retenção de Leitura", iconName: "clock", dataKey: "jor_ret", chartType: "line", format: "percent", numericTarget: 40.0, inverseLogic: false }
             ],
-            socio: [
-                { id: 's1', title: "Resíduos Reciclados (kg)", target: "200", trend: "", isPositive: false, status: "yellow", iconName: "recycle", dataKey: "soc_res", chartType: "area", format: "number", numericTarget: 200 },
-                { id: 's2', title: "Colab. Capacitados", target: "70", trend: "", isPositive: false, status: "yellow", iconName: "users", dataKey: "soc_colab", chartType: "bar", format: "number", numericTarget: 70 },
-                { id: 's3', title: "Capacitação Comunidade", target: "150", trend: "", isPositive: false, status: "yellow", iconName: "graduation-cap", dataKey: "soc_cap", chartType: "line", format: "number", numericTarget: 150 },
-                { id: 's4', title: "Projetos Atendidos", target: "2", trend: "", isPositive: false, status: "yellow", iconName: "folder-heart", dataKey: "soc_proj", chartType: "bar", format: "number", numericTarget: 2 },
+            soc: [
+                { id: 's1', title: "Resíduos Reciclados (kg)", iconName: "recycle", dataKey: "soc_res", chartType: "area", format: "number", numericTarget: 200, inverseLogic: false },
+                { id: 's2', title: "Colab. Capacitados", iconName: "users", dataKey: "soc_colab", chartType: "bar", format: "number", numericTarget: 70, inverseLogic: false },
+                { id: 's3', title: "Capacitação Comunidade", iconName: "graduation-cap", dataKey: "soc_cap", chartType: "line", format: "number", numericTarget: 150, inverseLogic: false },
+                { id: 's4', title: "Projetos Atendidos", iconName: "folder-heart", dataKey: "soc_proj", chartType: "bar", format: "number", numericTarget: 2, inverseLogic: false },
             ],
             evt: [
-                { id: 'e1', title: "Satisfação Geral", target: "85,0%", trend: "", isPositive: true, status: "green", iconName: "smile", dataKey: "evt_sat", chartType: "area", format: "percent", numericTarget: 85.0 },
-                { id: 'e2', title: "Eventos Realizados", target: "35", trend: "", isPositive: false, status: "red", iconName: "calendar-days", dataKey: "evt_real", chartType: "bar", format: "number", numericTarget: 35 },
-                { id: 'e3', title: "Eventos Planejados", target: "35", trend: "", isPositive: true, status: "green", iconName: "calendar-clock", dataKey: "evt_plan", chartType: "bar", format: "number", numericTarget: 35 },
-                { id: 'e4', title: "Taxa de Participação", target: "600", trend: "", isPositive: true, status: "green", iconName: "users", dataKey: "evt_part", chartType: "line", format: "number", numericTarget: 600 },
+                { id: 'e1', title: "Taxa de Execução", iconName: "bar-chart-2", dataKey: "evt_exec", chartType: "line", format: "number", numericTarget: 36, inverseLogic: false },
+                { id: 'e2', title: "Satisfação Geral", iconName: "smile", dataKey: "evt_sat", chartType: "area", format: "percent", numericTarget: 85.0, inverseLogic: false },
+                { id: 'e3', title: "Eventos Realizados", iconName: "calendar-days", dataKey: "evt_real", chartType: "bar", format: "number", numericTarget: 35, inverseLogic: false },
+                { id: 'e4', title: "Eventos Planejados", iconName: "calendar-clock", dataKey: "evt_plan", chartType: "bar", format: "number", numericTarget: 35, inverseLogic: false },
+                { id: 'e5', title: "Taxa de Participação", iconName: "users", dataKey: "evt_part", chartType: "line", format: "number", numericTarget: 600, inverseLogic: false },
             ]
         };
 
@@ -367,6 +310,45 @@
             { id: 'socio', name: 'Socioambiental' },
             { id: 'evt', name: 'Eventos' },
         ];
+
+        // ==========================================
+        // MOTOR DE CÁLCULO DE DESEMPENHO (FAROL)
+        // ==========================================
+        function calculatePerformance(value, target, inverseLogic) {
+            if (value === undefined || value === null || isNaN(value)) {
+                return { status: 'slate', trend: '-', isPositive: true };
+            }
+            
+            let status = 'yellow';
+            let isPositive = true;
+            let diffPercent = 0;
+            
+            if (target > 0) {
+                diffPercent = ((value - target) / target) * 100;
+            } else if (target === 0 && value > 0) {
+                diffPercent = 100; // Crescimento infinito se o target for 0
+            }
+            
+            let trendStr = diffPercent > 0 ? `+${diffPercent.toFixed(1)}%` : `${diffPercent.toFixed(1)}%`;
+            if (value === target) trendStr = '0.0%';
+
+            if (inverseLogic) {
+                // Lógica Reversa (Menor custo é melhor)
+                isPositive = value <= target;
+                if (value <= target) status = 'green';
+                else if (value <= target * 1.15) status = 'yellow'; // Margem de 15% de tolerância
+                else status = 'red';
+            } else {
+                // Lógica Normal (Maior alcance é melhor)
+                isPositive = value >= target;
+                if (value >= target) status = 'green';
+                else if (value >= target * 0.85) status = 'yellow'; // Margem de 15% de tolerância
+                else status = 'red';
+            }
+
+            return { status, trend: trendStr, isPositive };
+        }
+
 
         // ==========================================
         // LÓGICA DE AUTENTICAÇÃO
@@ -569,17 +551,24 @@
             const kpisHTML = currentKPIs.map(kpi => {
                 const rawValue = lastData[kpi.dataKey];
                 const val = rawValue !== undefined ? formatValue(rawValue, kpi.format) : formatValue(0, kpi.format);
+                const targetFormatted = formatValue(kpi.numericTarget, kpi.format);
                 
-                // Colorização dinâmica simples
-                let confBg = 'bg-blue-50 text-blue-700';
-                if (kpi.status === 'green') confBg = 'bg-emerald-50 text-emerald-700';
-                if (kpi.status === 'red') confBg = 'bg-red-50 text-red-700';
-                if (kpi.status === 'yellow') confBg = 'bg-amber-50 text-amber-700';
+                // Análise automática da Cor e Tendência do KPI!
+                const perf = calculatePerformance(rawValue, kpi.numericTarget, kpi.inverseLogic);
                 
+                let confBg = 'bg-slate-50 text-slate-500 border-slate-200';
+                if (perf.status === 'green') confBg = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                if (perf.status === 'red') confBg = 'bg-red-50 text-red-700 border-red-200';
+                if (perf.status === 'yellow') confBg = 'bg-amber-50 text-amber-700 border-amber-200';
+                
+                const trendColor = perf.isPositive ? 'text-emerald-600' : 'text-red-600';
+                const trendBg = perf.isPositive ? 'bg-emerald-50' : 'bg-red-50';
+                const trendIcon = perf.isPositive ? 'trending-up' : 'trending-down';
+
                 return `
                 <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200/60 relative overflow-hidden transition-all duration-300 hover:shadow-md">
                     <div class="flex justify-between items-start mb-4">
-                        <div class="p-2.5 rounded-2xl ${confBg}">
+                        <div class="p-2.5 rounded-2xl ${confBg} border">
                             <i data-lucide="${kpi.iconName}" class="w-5 h-5"></i>
                         </div>
                     </div>
@@ -587,7 +576,10 @@
                         <h4 class="text-[12px] font-semibold text-slate-500 mb-1 leading-tight">${kpi.title}</h4>
                         <h2 class="text-2xl font-black text-slate-800 tracking-tight">${val}</h2>
                         <div class="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                            <span class="text-slate-400 font-medium truncate">Meta: ${kpi.target}</span>
+                            <div class="flex items-center gap-1 px-1.5 py-0.5 rounded-md ${trendBg} ${trendColor}">
+                                <i data-lucide="${trendIcon}" class="w-3 h-3"></i> <span class="font-bold">${perf.trend}</span>
+                            </div>
+                            <span class="text-slate-400 font-medium truncate ml-2" title="Meta Estratégica: ${targetFormatted}">Meta: ${targetFormatted}</span>
                         </div>
                     </div>
                 </div>`;
@@ -769,7 +761,7 @@
         }
 
         // ==========================================
-        // TELA DE INSERÇÃO MANUAL E CALCULADORA
+        // TELA DE INSERÇÃO MANUAL DE KPIs
         // ==========================================
         function buildManualEntryHTML() {
             const def = formDefinitions[state.entryCategory];
@@ -799,8 +791,8 @@
                             <i data-lucide="edit-3" class="w-7 h-7"></i>
                         </div>
                         <div>
-                            <h2 class="text-2xl font-bold text-slate-800 tracking-tight">Calculadora e Inserção de Dados</h2>
-                            <p class="text-slate-500 text-sm">Insira os dados brutos reais da plataforma. O sistema calcula os KPIs automaticamente.</p>
+                            <h2 class="text-2xl font-bold text-slate-800 tracking-tight">Inserção Direta de Dados</h2>
+                            <p class="text-slate-500 text-sm">Insira os resultados exatos dos KPIs conforme as planilhas da sua área.</p>
                         </div>
                     </div>
                 </div>
@@ -842,7 +834,7 @@
                     <div class="flex justify-end pt-6 border-t border-slate-100">
                         <button id="btn-save-entry" class="px-8 py-3.5 bg-slate-900 text-white rounded-xl font-bold hover:bg-indigo-600 shadow-lg shadow-slate-900/20 transition-all flex items-center gap-2">
                             <i data-lucide="save" class="w-5 h-5"></i>
-                            Calcular KPIs e Guardar
+                            Salvar Dados da Área
                         </button>
                     </div>
                 </div>
@@ -850,7 +842,6 @@
         }
 
         function attachManualEntryListeners() {
-            // Atualiza Interface ao trocar de Mês ou Área
             document.getElementById('entry-month').addEventListener('change', (e) => {
                 state.entryMonth = e.target.value;
                 renderApp();
@@ -877,39 +868,33 @@
             };
 
             btnSave.addEventListener('click', async () => {
-                setMsg('Calculando e sincronizando com o Banco...', 'info');
+                setMsg('Sincronizando com o Banco...', 'info');
                 btnSave.disabled = true;
 
                 try {
                     const def = formDefinitions[state.entryCategory];
                     const rawValues = {};
                     
-                    // Extração dos valores dos inputs do HTML
                     def.fields.forEach(f => {
                         const val = document.getElementById(`input-${f.id}`).value;
-                        // Aceita ',' ou '.' como separador decimal para evitar erro humano
+                        // Aceita ',' ou '.' como separador decimal para evitar erro
                         rawValues[f.id] = val ? parseFloat(val.replace(',', '.')) : 0;
                     });
-
-                    // Invoca função de Cálculo específica de cada Área
-                    const calculatedKPIs = def.calculate(rawValues);
                     
                     const mInfo = monthsInfo.find(m => m.m === state.entryMonth);
 
                     const dataToSave = {
-                        ...calculatedKPIs,
+                        ...rawValues,
                         month: mInfo.m,
                         quarter: mInfo.q,
                         timestamp: mInfo.t
                     };
 
-                    // Guardar no banco de dados (merge true = não apaga dados das outras abas para o mesmo mês)
                     const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'monthlyMetrics', state.entryMonth);
                     await setDoc(docRef, dataToSave, { merge: true });
 
-                    setMsg(`Dados de ${def.title} guardados! Os KPIs foram atualizados.`, 'success');
+                    setMsg(`Dados de ${def.title} guardados com sucesso!`, 'success');
                     
-                    // Limpar Form
                     def.fields.forEach(f => { document.getElementById(`input-${f.id}`).value = ''; });
 
                 } catch (err) {
