@@ -49,10 +49,13 @@
     </div>
 
     <!-- TELA PRINCIPAL (APP) -->
-    <div id="app-screen" class="hidden flex h-screen">
+    <div id="app-screen" class="hidden flex h-screen w-full relative overflow-hidden">
         
+        <!-- SIDEBAR BACKDROP (Mobile) -->
+        <div id="sidebar-backdrop" class="fixed inset-0 bg-slate-900/60 z-30 hidden md:hidden backdrop-blur-sm transition-opacity opacity-0"></div>
+
         <!-- SIDEBAR -->
-        <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col transition-all duration-300 shadow-2xl z-20">
+        <aside id="sidebar" class="w-64 bg-slate-900 text-slate-300 flex flex-col shadow-2xl z-40 fixed inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-300">
             <div class="h-20 flex items-center gap-3 px-6 border-b border-slate-800/50">
                 <div class="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
                     <i data-lucide="activity" class="text-white w-5 h-5"></i>
@@ -80,15 +83,15 @@
         </aside>
 
         <!-- CONTEÚDO -->
-        <main class="flex-1 flex flex-col overflow-hidden relative">
-            <header class="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200/60 flex items-center justify-between px-8 z-10 sticky top-0">
-                <div>
-                    <h2 id="header-title" class="text-xl font-bold text-slate-800 tracking-tight">Painel de Desempenho</h2>
-                    <div class="text-sm mt-0.5 flex items-center gap-2">
-                        <span id="db-status-icon" class="w-2 h-2 rounded-full bg-slate-300"></span>
-                        <span id="db-status-text" class="text-slate-500">Inicializando...</span>
-                    </div>
-                </div>
+        <main class="flex-1 flex flex-col overflow-hidden relative min-w-0 w-full">
+            <header class="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200/60 flex items-center justify-between px-4 md:px-8 z-10 sticky top-0">
+                <div class="flex items-center gap-3">
+                    <button id="mobile-menu-btn" class="md:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-xl transition-colors">
+                        <i data-lucide="menu" class="w-6 h-6"></i>
+                    </button>
+                    <div>
+                        <h2 id="header-title" class="text-xl font-bold text-slate-800 tracking-tight">Painel de Desempenho</h2>
+                        <div class="text-sm mt-0.5 flex items-center gap-2">
             </header>
             <div id="main-content" class="flex-1 overflow-auto p-6 md:p-8"></div>
         </main>
@@ -435,11 +438,11 @@
             if (state.selectedArea === 'mkt') {
                 const networks = [{ id: 'instagram', label: 'Instagram', icon: 'instagram' }, { id: 'linkedin', label: 'LinkedIn', icon: 'linkedin' }, { id: 'youtube', label: 'YouTube', icon: 'youtube' }, { id: 'tiktok', label: 'TikTok', icon: 'smartphone' }];
                 subFilterHTML = `
-                <div class="flex items-center gap-3 mt-4 mb-2 fade-in">
-                    <div class="text-sm font-semibold text-slate-400 flex items-center gap-1">Rede Social <i data-lucide="chevron-right" class="w-4 h-4"></i></div>
-                    <div class="flex bg-white rounded-xl shadow-sm border border-slate-200/60 p-1 flex-wrap">
+                <div class="flex flex-col md:flex-row md:items-center gap-3 mt-4 mb-2 fade-in">
+                    <div class="text-sm font-semibold text-slate-400 flex items-center gap-1 shrink-0">Rede Social <i data-lucide="chevron-right" class="w-4 h-4"></i></div>
+                    <div class="flex bg-white rounded-xl shadow-sm border border-slate-200/60 p-1 overflow-x-auto hide-scrollbar max-w-full">
                         ${networks.map(net => `
-                            <button data-network="${net.id}" class="network-btn flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${state.selectedNetwork === net.id ? 'bg-indigo-50 text-indigo-700' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'}">
+                            <button data-network="${net.id}" class="network-btn whitespace-nowrap flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${state.selectedNetwork === net.id ? 'bg-indigo-50 text-indigo-700' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'}">
                                 <i data-lucide="${net.icon}" class="w-4 h-4"></i> ${net.label}
                             </button>
                         `).join('')}
@@ -503,21 +506,21 @@
             }).join('');
 
             const chartsHTML = currentKPIs.map(kpi => `
-                <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200/60 flex flex-col h-[300px]">
-                    <div class="mb-2 flex justify-between items-center">
-                        <div>
-                            <h3 class="text-[15px] font-bold text-slate-800 tracking-tight">${kpi.title}</h3>
-                            <p class="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">
+                <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200/60 flex flex-col h-[300px] min-w-0 overflow-hidden">
+                    <div class="mb-2 flex justify-between items-center shrink-0">
+                        <div class="min-w-0">
+                            <h3 class="text-[15px] font-bold text-slate-800 tracking-tight truncate">${kpi.title}</h3>
+                            <p class="text-[11px] text-slate-400 uppercase tracking-wider font-semibold truncate">
                                 ${state.isComparativeMode ? 'Comparativo Trimestral' : 'Série Temporal c/ Predição'}
                             </p>
                         </div>
                     </div>
-                    <div id="chart-${kpi.id}" class="flex-1 w-full"></div>
+                    <div id="chart-${kpi.id}" class="w-full flex-1 min-h-0"></div>
                 </div>
             `).join('');
 
             return `
-                <div class="max-w-[1600px] mx-auto space-y-6 fade-in">
+                <div class="max-w-[1600px] mx-auto space-y-6 fade-in pb-10">
                     
                     <div class="bg-white p-2 rounded-2xl shadow-sm border border-slate-200/60 flex flex-col xl:flex-row justify-between items-center gap-4">
                         <div class="flex items-center w-full xl:w-auto overflow-x-auto hide-scrollbar px-2">
@@ -639,21 +642,20 @@
 
                     options = {
                         series: [{ name: 'Realizado/Predição', data: seriesData }],
-                        chart: { type: chartType === 'bar' ? 'line' : chartType, height: '100%', toolbar: { show: false }, fontFamily: 'inherit' },
+                        chart: { type: chartType === 'bar' ? 'line' : chartType, height: '100%', width: '100%', toolbar: { show: false }, fontFamily: 'inherit', parentHeightOffset: 0 },
                         colors: colors,
                         stroke: { 
                             curve: 'smooth', 
-                            width: 3,
-                            dashArray: forecastCount > 0 ? [0] : [0] // Apexcharts custom dash via css class injection if needed, but standard is easier
+                            width: 3
                         },
-                        forecastDataPoints: { count: forecastCount }, // Magia da Predição do ApexCharts
+                        forecastDataPoints: { count: forecastCount, dashArray: 4 }, // Configuração nativa de predição do ApexCharts
                         fill: { type: chartType === 'area' ? 'gradient' : 'solid' },
                         dataLabels: { enabled: false },
-                        xaxis: { categories: categories, axisBorder: { show: false }, axisTicks: { show: false }, labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                        xaxis: { categories: categories, axisBorder: { show: false }, axisTicks: { show: false }, labels: { style: { colors: '#94a3b8', fontSize: '11px' }, hideOverlappingLabels: true, trim: true } },
                         yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px' }, formatter: (value) => formatValue(value, kpi.format) } },
-                        grid: { borderColor: '#f1f5f9', strokeDashArray: 4 },
+                        grid: { borderColor: '#f1f5f9', strokeDashArray: 4, padding: { left: 10, right: 10, bottom: 0 } },
                         annotations: { yaxis: [{ y: kpi.numericTarget, borderColor: '#cbd5e1', strokeDashArray: 4, label: { text: 'Meta', style: { color: '#fff', background: '#94a3b8', fontSize: '10px' } } }] },
-                        tooltip: { y: { formatter: (value) => formatValue(value, kpi.format) } }
+                        tooltip: { theme: 'light', y: { formatter: (value) => formatValue(value, kpi.format) } }
                     };
                 }
 
@@ -762,6 +764,30 @@
                 }
             });
         }
+
+        // --- LÓGICA DO MENU MOBILE ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const mobileBtn = document.getElementById('mobile-menu-btn');
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('sidebar-backdrop');
+
+            function toggleSidebar() {
+                if(!sidebar || !backdrop) return;
+                sidebar.classList.toggle('-translate-x-full');
+                backdrop.classList.toggle('hidden');
+                setTimeout(() => backdrop.classList.toggle('opacity-0'), 10);
+            }
+
+            if(mobileBtn) mobileBtn.addEventListener('click', toggleSidebar);
+            if(backdrop) backdrop.addEventListener('click', toggleSidebar);
+            
+            // Auto close na seleção (Apenas mobile)
+            document.getElementById('nav-menu').addEventListener('click', (e) => {
+                if (window.innerWidth < 768 && e.target.closest('.tab-btn')) {
+                    toggleSidebar();
+                }
+            });
+        });
     </script>
 </body>
 </html>
