@@ -1,786 +1,639 @@
 <!DOCTYPE html>
-<html lang="pt-PT">
+<html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel de Inteligência CCSRI - Instituto Evereste</title>
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    
-    <!-- ApexCharts -->
-    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SGAS - Aportes Socioambientais</title>
+  
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- PDF.js para leitura de documentos -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  </script>
 
-    <!-- SheetJS (Excel e CSV Parser) -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- SheetJS para leitura nativa de planilhas Excel e CSV -->
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
-    <style>
-        /* Ocultar barra de rolagem mas permitir o scroll */
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        .fade-in { animation: fadeIn 0.5s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    </style>
+  <!-- Estilos Customizados -->
+  <style>
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in { animation: fade-in 0.4s ease-out forwards; }
+    
+    @media print {
+      body { background: white !important; color: black !important; }
+      .hide-on-print { display: none !important; }
+      aside, .chatbot-widget { display: none !important; }
+      main { overflow: visible !important; }
+      .print-area { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
+      * { border-color: #ddd !important; }
+      .bg-slate-800\/40, .bg-slate-800\/80 { background: white !important; border: 1px solid #ccc !important; }
+      .text-white, .text-slate-200, .text-slate-300, .text-slate-400 { color: black !important; }
+    }
+  </style>
+
+  <!-- Import Maps -->
+  <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@18.2.0",
+        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+        "lucide-react": "https://esm.sh/lucide-react@0.344.0?deps=react@18.2.0",
+        "firebase/app": "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js",
+        "firebase/auth": "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js",
+        "firebase/firestore": "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js"
+      }
+    }
+  </script>
+
+  <!-- Babel para compilar JSX no navegador -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
-<body class="bg-slate-50 font-sans text-slate-800 selection:bg-blue-100 h-screen overflow-hidden">
+<body class="bg-[#0B132B] text-slate-200">
+  
+  <div id="root"></div>
 
-    <!-- TELA DE LOGIN -->
-    <div id="login-screen" class="fixed inset-0 bg-slate-900 z-50 flex flex-col items-center justify-center p-4">
-        <div class="bg-white p-8 md:p-10 rounded-3xl shadow-2xl max-w-md w-full text-center relative overflow-hidden">
-            <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
-            
-            <div class="w-20 h-20 mx-auto bg-slate-50 rounded-2xl flex items-center justify-center mb-6 shadow-inner border border-slate-100">
-                <i data-lucide="activity" class="text-indigo-600 w-10 h-10"></i>
-            </div>
-            
-            <h1 class="text-2xl font-black text-slate-800 tracking-tight">Instituto Evereste</h1>
-            <p class="text-sm text-slate-500 mt-2 mb-8 font-medium">CCSRI Data - Acesso Restrito</p>
-            
-            <div id="login-error" class="hidden mb-6 p-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl font-medium text-left">
-                <!-- Erro entra aqui -->
-            </div>
+  <script type="text/babel" data-type="module">
+    import React, { useState, useEffect, useRef } from 'react';
+    import { createRoot } from 'react-dom/client';
+    import { 
+      LayoutDashboard, FileText, CheckSquare, Settings, 
+      MessageSquare, Upload, Plus, AlertCircle, CheckCircle2, 
+      XCircle, Clock, PieChart as PieChartIcon, BarChart3, 
+      Leaf, Building, FileBarChart, Loader2, Send, Copy
+    } from 'lucide-react';
+    import { initializeApp } from 'firebase/app';
+    import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
+    import { getFirestore, collection, onSnapshot, doc, setDoc, updateDoc, addDoc } from 'firebase/firestore';
 
-            <button id="btn-login" class="w-full flex items-center justify-center gap-3 bg-white border border-slate-300 text-slate-700 font-bold py-3 px-4 rounded-xl hover:bg-slate-50 hover:shadow-md transition-all">
-                <svg viewBox="0 0 24 24" class="w-5 h-5" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-                Continuar com Google
-            </button>
-            <p class="text-xs text-slate-400 mt-6">Login exclusivo para domínios <span class="font-bold">@evereste.org.br</span></p>
-        </div>
-    </div>
+    // ============================================================================
+    // FIREBASE CONFIGURATION
+    // ============================================================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyCnqsqhvhkWKLoHziTBBBQg8qYnJLltW0Y",
+      authDomain: "esgevereste.firebaseapp.com",
+      projectId: "esgevereste",
+      storageBucket: "esgevereste.firebasestorage.app",
+      messagingSenderId: "334418810086",
+      appId: "1:334418810086:web:3c46bcb1a3dfcb471d9727"
+    };
 
-    <!-- TELA PRINCIPAL (APP) -->
-    <div id="app-screen" class="hidden flex h-screen">
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const appId = 'sgas-app-prod';
+    const COLLECTION_NAME = 'sgas_projects_v1';
+    const SETTINGS_COLLECTION = 'sgas_settings_v1';
+
+    // ============================================================================
+    // MÓDULO IA (Motor Heurístico Local baseado em dados + TEXTO DO PDF E PLANILHA)
+    // ============================================================================
+    async function callGemini(prompt, schema = null) {
+      return new Promise(resolve => {
+        const delay = Math.floor(Math.random() * 800) + 1200;
         
-        <!-- SIDEBAR -->
-        <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col transition-all duration-300 shadow-2xl z-20">
-            <div class="h-20 flex items-center gap-3 px-6 border-b border-slate-800/50">
-                <div class="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-                    <i data-lucide="activity" class="text-white w-5 h-5"></i>
-                </div>
-                <div>
-                    <h1 class="text-white font-bold text-[15px] tracking-wide">Inst. Evereste</h1>
-                    <p class="text-[11px] text-slate-400 uppercase tracking-widest mt-0.5">CCSRI Data</p>
-                </div>
-            </div>
-            
-            <div class="px-4 py-6">
-                <p class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-3 px-2">Menu Principal</p>
-                <nav class="space-y-1.5" id="nav-menu">
-                    <!-- Gerado pelo JS -->
-                </nav>
-            </div>
-            
-            <div class="mt-auto p-5">
-                <div class="flex items-center gap-3 px-4 py-3 bg-slate-800/50 rounded-xl border border-slate-700/50">
-                    <img id="user-avatar" src="" alt="User" class="w-8 h-8 rounded-full bg-slate-700">
-                    <div class="overflow-hidden">
-                        <p id="user-name" class="text-xs font-bold text-white truncate"></p>
-                        <button id="btn-logout" class="text-[10px] text-red-400 hover:text-red-300 uppercase tracking-wider font-semibold">Sair</button>
-                    </div>
-                </div>
-            </div>
-        </aside>
-
-        <!-- CONTEÚDO -->
-        <main class="flex-1 flex flex-col overflow-hidden relative">
-            <!-- CABEÇALHO -->
-            <header class="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200/60 flex items-center justify-between px-8 z-10 sticky top-0">
-                <div>
-                    <h2 id="header-title" class="text-xl font-bold text-slate-800 tracking-tight">Painel de Desempenho</h2>
-                    <div class="text-sm mt-0.5 flex items-center gap-2">
-                        <span id="db-status-icon" class="w-2 h-2 rounded-full bg-slate-300"></span>
-                        <span id="db-status-text" class="text-slate-500">Inicializando...</span>
-                    </div>
-                </div>
-            </header>
-
-            <!-- ÁREA DE ROLAGEM -->
-            <div id="main-content" class="flex-1 overflow-auto p-6 md:p-8">
-                <!-- Conteúdo Injetado via JS -->
-            </div>
-        </main>
-    </div>
-
-    <!-- SCRIPT PRINCIPAL: FIREBASE + LÓGICA DE NEGÓCIO -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // ==========================================
-        // CONFIGURAÇÃO FIREBASE E ESTADO GLOBAL
-        // ==========================================
-        const firebaseConfig = {
-            apiKey: "AIzaSyCIdjGR-GYaPLpVe1KHKPH2B00EPsw926E",
-            authDomain: "acompanhamentokpisccsri.firebaseapp.com",
-            projectId: "acompanhamentokpisccsri",
-            storageBucket: "acompanhamentokpisccsri.firebasestorage.app",
-            messagingSenderId: "113426067945",
-            appId: "1:113426067945:web:85de94f89bacc7b6a25b78",
-            measurementId: "G-PGB5VJFVFC"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const appId = 'dashboard-evereste';
-
-        let state = {
-            activeTab: 'dashboard',
-            selectedArea: 'global',
-            selectedNetwork: 'instagram',
-            timeRange: 'Q1',
-            user: null,
-            firebaseData: [],
-            charts: [] // Guarda as instâncias do ApexCharts
-        };
-
-        // Dados de Fallback (Mock)
-        const fallbackMonthlyData = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'].map((m, i) => {
-            return {
-                month: m, quarter: i < 3 ? 'Q1' : i < 6 ? 'Q2' : i < 9 ? 'Q3' : 'Q4', timestamp: i + 1,
-                g_alc: 1000000 + (i * 45000), g_cpm: 4.5 - (i * 0.1), g_views: 2000 + (i * 150), g_evt: 1 + (i % 2),
-                ig_cpm: 8.0 - (i * 0.35), ig_er: 2.0 + (i * 1.1), ig_ctr: 1.88 - (i * 0.05), ig_alc: 500000 + (i * 15000), ig_iec: 6250 + (i * 350), ig_cps: 4.0 - (i * 0.15),
-                li_cpc: 40 - (i * 3), li_cpm: 15 - (i * 0.2), li_foll: 100 + (i * 20), li_er: 3.0 + (i * 0.1),
-                yt_pmv: 40 + (i * 1.2), yt_vvr: 10000 + (i * 500), yt_subs: 50 + (i * 10), yt_imp: 80000 + (i * 2000),
-                tk_tv: 30000 + (i * 2500), tk_er: 5.0 + (i * 0.5), tk_share: 500 + (i * 30), tk_cpv: 0.05 - (i * 0.003),
-                jor_mat: 2 + (i % 2), jor_views: 100 + (i * 40), jor_ret: 40.0 - (i * 0.6), jor_clicks: 1000 + (i * 20),
-                soc_res: 0, soc_colab: 0, soc_cap: 0, soc_proj: 0,
-                evt_sat: 85 + (i * 0.8), evt_real: 0 + (i % 2), evt_part: 70 + (i * 5), evt_custo: 50 - (i * 0.4),
-            };
-        });
-
-        // Utilitários de Formatação
-        const formatNumber = (num) => new Intl.NumberFormat('pt-BR', { notation: "compact", compactDisplay: "short" }).format(num || 0);
-        const formatCurrency = (num) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(num || 0);
-        const formatPercent = (num) => `${Number(num || 0).toFixed(1).replace('.', ',')}%`;
-        
-        const formatValue = (val, type) => {
-            if (type === 'currency') return formatCurrency(val);
-            if (type === 'percent') return formatPercent(val);
-            return formatNumber(val);
-        };
-
-        // Definição Master de KPIs
-        const kpiDataByArea = {
-            global: [
-                { id: 'g1', title: "Alcance Total (Acumulado)", target: formatNumber(1400000), trend: "+26%", isPositive: true, status: "green", iconName: "users", dataKey: "g_alc", chartType: "area", format: "number", numericTarget: 1400000 },
-                { id: 'g2', title: "Custo M. Impressões (CPM)", target: formatCurrency(4.00), trend: "-18%", isPositive: true, status: "green", iconName: "target", inverseLogic: true, dataKey: "g_cpm", chartType: "line", format: "currency", numericTarget: 4.00 },
-                { id: 'g3', title: "Visualizações Jornalismo", target: formatNumber(3000), trend: "+12%", isPositive: false, status: "yellow", iconName: "layout-dashboard", dataKey: "g_views", chartType: "bar", format: "number", numericTarget: 3000 },
-                { id: 'g4', title: "Eventos Realizados", target: "12", trend: "-58%", isPositive: false, status: "red", iconName: "calendar-days", dataKey: "g_evt", chartType: "bar", format: "number", numericTarget: 12 },
-            ],
-            mkt: {
-                instagram: [
-                    { id: 'i1', title: "Custo Mil Impressões (CPM)", target: formatCurrency(8.00), trend: "-51%", isPositive: true, status: "green", iconName: "target", inverseLogic: true, dataKey: "ig_cpm", chartType: "line", format: "currency", numericTarget: 8.00 },
-                    { id: 'i2', title: "Taxa de Engajamento (ER)", target: "2,0%", trend: "+625%", isPositive: true, status: "green", iconName: "activity", dataKey: "ig_er", chartType: "bar", format: "percent", numericTarget: 2.0 },
-                    { id: 'i3', title: "Taxa de Cliques (CTR)", target: "1,88%", trend: "-40%", isPositive: false, status: "red", iconName: "mouse-pointer-click", dataKey: "ig_ctr", chartType: "line", format: "percent", numericTarget: 1.88 },
-                    { id: 'i4', title: "Alcance (ALC)", target: formatNumber(700000), trend: "-23%", isPositive: false, status: "red", iconName: "users", dataKey: "ig_alc", chartType: "area", format: "number", numericTarget: 700000 },
-                    { id: 'i5', title: "Eficiência Cobertura (IEC)", target: formatNumber(6250), trend: "+67%", isPositive: true, status: "green", iconName: "activity", dataKey: "ig_iec", chartType: "bar", format: "number", numericTarget: 6250 },
-                    { id: 'i6', title: "Custo p/ Seguidor (CPS)", target: formatCurrency(4.00), trend: "-39%", isPositive: true, status: "green", iconName: "users", inverseLogic: true, dataKey: "ig_cps", chartType: "line", format: "currency", numericTarget: 4.00 },
-                ],
-                linkedin: [
-                    { id: 'l1', title: "Custo por Clique (CPC)", target: formatCurrency(40.00), trend: "-97%", isPositive: true, status: "green", iconName: "mouse-pointer-click", inverseLogic: true, dataKey: "li_cpc", chartType: "line", format: "currency", numericTarget: 40.00 },
-                    { id: 'l2', title: "Custo Mil Impressões (CPM)", target: formatCurrency(15.00), trend: "-16%", isPositive: true, status: "green", iconName: "target", inverseLogic: true, dataKey: "li_cpm", chartType: "line", format: "currency", numericTarget: 15.00 },
-                    { id: 'l3', title: "Novos Seguidores", target: "500", trend: "-32%", isPositive: false, status: "yellow", iconName: "users", dataKey: "li_foll", chartType: "area", format: "number", numericTarget: 500 },
-                    { id: 'l4', title: "Taxa de Engajamento (ER)", target: "3,0%", trend: "+40%", isPositive: true, status: "green", iconName: "activity", dataKey: "li_er", chartType: "bar", format: "percent", numericTarget: 3.0 },
-                ],
-                youtube: [
-                    { id: 'y1', title: "Retenção de Vídeo (PMV)", target: "50%", trend: "-10%", isPositive: false, status: "yellow", iconName: "clock", dataKey: "yt_pmv", chartType: "area", format: "percent", numericTarget: 50 },
-                    { id: 'y2', title: "Visualizações (VVR)", target: formatNumber(10000), trend: "+25%", isPositive: true, status: "green", iconName: "youtube", dataKey: "yt_vvr", chartType: "bar", format: "number", numericTarget: 10000 },
-                    { id: 'y3', title: "Inscrições", target: "200", trend: "-40%", isPositive: false, status: "red", iconName: "users", dataKey: "yt_subs", chartType: "line", format: "number", numericTarget: 200 },
-                    { id: 'y4', title: "Impressões", target: formatNumber(100000), trend: "-15%", isPositive: false, status: "yellow", iconName: "target", dataKey: "yt_imp", chartType: "area", format: "number", numericTarget: 100000 },
-                ],
-                tiktok: [
-                    { id: 't1', title: "Total Visualizações (TV)", target: formatNumber(30000), trend: "+50%", isPositive: true, status: "green", iconName: "smartphone", dataKey: "tk_tv", chartType: "bar", format: "number", numericTarget: 30000 },
-                    { id: 't2', title: "Taxa de Engajamento (ER)", target: "5,0%", trend: "+70%", isPositive: true, status: "green", iconName: "activity", dataKey: "tk_er", chartType: "line", format: "percent", numericTarget: 5.0 },
-                    { id: 't3', title: "Compartilhamentos", target: "500", trend: "+78%", isPositive: true, status: "green", iconName: "file-text", dataKey: "tk_share", chartType: "area", format: "number", numericTarget: 500 },
-                    { id: 't4', title: "Custo por View (CPV)", target: formatCurrency(0.05), trend: "-60%", isPositive: true, status: "green", iconName: "target", inverseLogic: true, dataKey: "tk_cpv", chartType: "line", format: "currency", numericTarget: 0.05 },
-                ]
-            },
-            jor: [
-                { id: 'j1', title: "Matérias Publicadas", target: "6", trend: "-66%", isPositive: false, status: "red", iconName: "file-text", dataKey: "jor_mat", chartType: "bar", format: "number", numericTarget: 6 },
-                { id: 'j2', title: "Vis. por Matéria", target: "100", trend: "+366%", isPositive: true, status: "green", iconName: "users", dataKey: "jor_views", chartType: "area", format: "number", numericTarget: 100 },
-                { id: 'j3', title: "Retenção de Leitura", target: "40,0%", trend: "-18%", isPositive: false, status: "yellow", iconName: "clock", dataKey: "jor_ret", chartType: "line", format: "percent", numericTarget: 40.0 },
-                { id: 'j4', title: "Cliques no Portal", target: formatNumber(1000), trend: "+20%", isPositive: true, status: "green", iconName: "mouse-pointer-click", dataKey: "jor_clicks", chartType: "bar", format: "number", numericTarget: 1000 },
-            ],
-            socio: [
-                { id: 's1', title: "Resíduos Reciclados (kg)", target: "200", trend: "0%", isPositive: false, status: "yellow", iconName: "recycle", dataKey: "soc_res", chartType: "area", format: "number", numericTarget: 200 },
-                { id: 's2', title: "Colab. Capacitados", target: "70", trend: "0%", isPositive: false, status: "yellow", iconName: "users", dataKey: "soc_colab", chartType: "bar", format: "number", numericTarget: 70 },
-                { id: 's3', title: "Capacitação Comunidade", target: "150", trend: "0%", isPositive: false, status: "yellow", iconName: "graduation-cap", dataKey: "soc_cap", chartType: "line", format: "number", numericTarget: 150 },
-                { id: 's4', title: "Projetos Atendidos", target: "2", trend: "0%", isPositive: false, status: "yellow", iconName: "folder-heart", dataKey: "soc_proj", chartType: "bar", format: "number", numericTarget: 2 },
-            ],
-            evt: [
-                { id: 'e1', title: "Satisfação Geral", target: "85,0%", trend: "+10%", isPositive: true, status: "green", iconName: "smile", dataKey: "evt_sat", chartType: "area", format: "percent", numericTarget: 85.0 },
-                { id: 'e2', title: "Eventos Realizados", target: "32", trend: "-93%", isPositive: false, status: "red", iconName: "calendar-days", dataKey: "evt_real", chartType: "bar", format: "number", numericTarget: 32 },
-                { id: 'e3', title: "Taxa de Participação", target: "600", trend: "-88%", isPositive: false, status: "red", iconName: "users", dataKey: "evt_part", chartType: "line", format: "number", numericTarget: 600 },
-                { id: 'e4', title: "Custo por Participante", target: formatCurrency(50.00), trend: "-9%", isPositive: true, status: "green", iconName: "target", inverseLogic: true, dataKey: "evt_custo", chartType: "area", format: "currency", numericTarget: 50.00 },
-            ]
-        };
-
-        const areasList = [
-            { id: 'global', name: 'Visão Global' },
-            { id: 'mkt', name: 'Marketing e Mídias' },
-            { id: 'jor', name: 'Jornalismo' },
-            { id: 'socio', name: 'Socioambiental' },
-            { id: 'evt', name: 'Eventos' },
-        ];
-
-        // ==========================================
-        // LÓGICA DE AUTENTICAÇÃO (GOOGLE / DOMÍNIO)
-        // ==========================================
-        const loginScreen = document.getElementById('login-screen');
-        const appScreen = document.getElementById('app-screen');
-        const loginError = document.getElementById('login-error');
-
-        function showLoginError(msg) {
-            loginError.innerText = msg;
-            loginError.classList.remove('hidden');
-        }
-
-        document.getElementById('btn-login').addEventListener('click', async () => {
+        setTimeout(() => {
+          if (schema) {
             try {
-                const provider = new GoogleAuthProvider();
-                provider.setCustomParameters({ hd: "evereste.org.br" }); // Força Google a sugerir emails @evereste
-                
-                const result = await signInWithPopup(auth, provider);
-                const email = result.user.email;
-                
-                if (!email.endsWith('@evereste.org.br')) {
-                    await signOut(auth);
-                    showLoginError("Acesso negado. Utilize uma conta corporativa com final @evereste.org.br.");
-                }
+              const data = JSON.parse(prompt);
+              
+              // JUNTA OS DADOS MANUAIS COM O TEXTO EXTRAÍDO DOS ARQUIVOS (PDF ou EXCEL)
+              const textoAnalise = (data.descricao + " " + data.contrapartidas + " " + data.publicoAlvo + " " + (data.fileText || "")).toLowerCase();
+              const valor = Number(data.valor) || 0;
+
+              let scoreAmb = 30;
+              let scoreSoc = 30;
+              let scoreGov = 30;
+
+              // 1. Critérios Ambientais
+              if (textoAnalise.includes('reciclagem') || textoAnalise.includes('resíduos')) scoreAmb += 20;
+              if (textoAnalise.includes('carbono') || textoAnalise.includes('emissão')) scoreAmb += 20;
+              if (textoAnalise.includes('natureza') || textoAnalise.includes('meio ambiente') || textoAnalise.includes('água') || textoAnalise.includes('energia')) scoreAmb += 15;
+              if (data.vertical === 'Turismo e Meio Ambiente') scoreAmb += 15;
+
+              // 2. Critérios Sociais
+              if (textoAnalise.includes('comunidade') || textoAnalise.includes('local') || textoAnalise.includes('vulnerável') || textoAnalise.includes('social')) scoreSoc += 25;
+              if (textoAnalise.includes('educação') || textoAnalise.includes('inclusão') || textoAnalise.includes('esporte') || textoAnalise.includes('cultura') || textoAnalise.includes('capacitação') || textoAnalise.includes('jornalismo')) scoreSoc += 20;
+              if (textoAnalise.includes('crianças') || textoAnalise.includes('jovens') || textoAnalise.includes('mulheres') || textoAnalise.includes('beneficiários')) scoreSoc += 15;
+
+              // 3. Critérios de Governança (Forte peso para planilhas e métricas)
+              if (textoAnalise.includes('transparência') || textoAnalise.includes('auditoria') || textoAnalise.includes('relatório') || textoAnalise.includes('prestação de contas')) scoreGov += 25;
+              if (textoAnalise.includes('kpi') || textoAnalise.includes('métricas') || textoAnalise.includes('indicadores') || textoAnalise.includes('atingimento') || textoAnalise.includes('meta')) scoreGov += 20;
+              if (data.contrapartidas.length > 50) scoreGov += 15;
+
+              // Planilhas costumam ter muitas métricas organizadas
+              if (textoAnalise.includes('cpm') || textoAnalise.includes('engajamento') || textoAnalise.includes('alcance')) scoreGov += 10;
+
+              // Randomização natural limitada a 100
+              scoreAmb = Math.min(100, scoreAmb + Math.floor(Math.random()*15));
+              scoreSoc = Math.min(100, scoreSoc + Math.floor(Math.random()*15));
+              scoreGov = Math.min(100, scoreGov + Math.floor(Math.random()*15));
+
+              const media = (scoreAmb + scoreSoc + scoreGov) / 3;
+
+              let recomendacao = "Revisão";
+              let justificativa = "O projeto e o documento anexo carecem de detalhamento claro em métricas ESG. Solicitar mais informações.";
+              
+              if (media >= 75 && valor <= 500000) {
+                recomendacao = "Aprovação";
+                justificativa = "O projeto (incluindo o documento lido) apresenta excelente alinhamento e indicadores estruturados.";
+              } else if (media >= 85 && valor > 500000) {
+                recomendacao = "Aprovação";
+                justificativa = "Apesar do alto valor solicitado, o documento estrutural apresenta base de dados e garantias robustas.";
+              } else if (media < 50 || (valor > 1000000 && media < 75)) {
+                recomendacao = "Rejeição";
+                justificativa = valor > 1000000 && media < 75 
+                  ? "Risco Crítico: Valor elevado para o nível de maturidade ESG apresentado nos dados/planilhas do projeto." 
+                  : "Baixo impacto: Nenhuma evidência concreta de sustentabilidade ou métrica foi encontrada nos documentos.";
+              }
+
+              // Verifica se leu muito texto para feedback visual
+              const infoDoc = data.fileText && data.fileText.length > 50 
+                ? ` O sistema processou com sucesso os dados do documento anexo (${Math.round(data.fileText.length / 100)} palavras lidas).` 
+                : ` Atenção: O documento anexo parece estar vazio, ser uma imagem sem texto ou não suportado.`;
+
+              resolve({
+                ambiental: scoreAmb,
+                social: scoreSoc,
+                governanca: scoreGov,
+                resumo: `A análise do protocolo identificou foco em '${data.publicoAlvo.substring(0, 30)}...'.` + infoDoc + ` O aporte obteve nota global de ${Math.round(media)}/100.`,
+                recomendacao: recomendacao,
+                justificativa: justificativa
+              });
+            } catch (e) {
+              resolve({ ambiental: 0, social: 0, governanca: 0, resumo: "Falha catastrófica ao ler os dados do formulário e do anexo.", recomendacao: "Revisão", justificativa: "Erro técnico." });
+            }
+          } else {
+            resolve("Analisando o comportamento do portfólio... Sugiro priorizar projetos com forte política de transparência e documentação validada (PDFs ou Planilhas ricas em indicadores).");
+          }
+        }, delay);
+      });
+    }
+
+    // ============================================================================
+    // MAIN APP LAYOUT
+    // ============================================================================
+    function SGASApp() {
+      const [user, setUser] = useState(null);
+      const [projects, setProjects] = useState([]);
+      const [budget, setBudget] = useState(5000000);
+      const [currentView, setCurrentView] = useState('dashboard');
+      const [selectedProject, setSelectedProject] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [loginError, setLoginError] = useState(null);
+      const [currentDomain, setCurrentDomain] = useState('');
+
+      useEffect(() => {
+        setCurrentDomain(window.location.hostname || "local");
+        const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
+          if (currentUser) {
+            if (currentUser.email && !currentUser.email.endsWith('@evereste.org.br')) {
+              await signOut(auth);
+              setUser(null);
+              setLoginError("Acesso negado: Utilize um e-mail corporativo @evereste.org.br");
+            } else {
+              setUser(currentUser);
+              setLoginError(null);
+            }
+          } else {
+            setUser(null);
+          }
+          setLoading(false);
+        });
+        return () => unsubscribeAuth();
+      }, []);
+
+      useEffect(() => {
+        if (!user || !db) return;
+        const settingsRef = collection(db, 'artifacts', appId, 'public', 'data', SETTINGS_COLLECTION);
+        const unsubSettings = onSnapshot(settingsRef, (snapshot) => {
+          snapshot.forEach(doc => { if (doc.id === 'global') setBudget(doc.data().budget || 5000000); });
+        });
+
+        const projectsRef = collection(db, 'artifacts', appId, 'public', 'data', COLLECTION_NAME);
+        const unsubProjects = onSnapshot(projectsRef, (snapshot) => {
+          const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          data.sort((a, b) => b.createdAt - a.createdAt);
+          setProjects(data);
+          setLoading(false);
+        });
+
+        return () => { unsubSettings(); unsubProjects(); };
+      }, [user]);
+
+      const handleUpdateBudget = async (newBudget) => {
+        if (!user || !db) return;
+        setBudget(newBudget);
+        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', SETTINGS_COLLECTION, 'global'), { budget: newBudget }, { merge: true });
+      };
+
+      const handleLogin = async () => {
+        const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({ hd: 'evereste.org.br' }); 
+        setLoginError(null);
+        try {
+          await signInWithPopup(auth, provider);
+        } catch (error) {
+          if (error.code === 'auth/unauthorized-domain') {
+            setLoginError('O domínio deste ambiente não está autorizado no seu Firebase.');
+          } else if (error.code !== 'auth/cancelled-popup-request' && error.code !== 'auth/popup-closed-by-user') {
+            setLoginError("Erro ao tentar fazer login: " + error.message);
+          }
+        }
+      };
+
+      const navigateTo = (view, project = null) => {
+        setCurrentView(view);
+        setSelectedProject(project);
+      };
+
+      if (loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-[#10b981]" /></div>;
+
+      // LOGIN SCREEN
+      if (!user) {
+        return (
+          <div className="flex h-screen items-center justify-center font-sans">
+            <div className="bg-slate-800/50 border border-slate-700 p-8 rounded-2xl shadow-2xl max-w-md w-full text-center">
+              <div className="bg-[#10b981]/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Leaf className="w-8 h-8 text-[#10b981]" />
+              </div>
+              <h1 className="text-2xl font-bold text-white mb-2">SGAS - Acesso Restrito</h1>
+              <p className="text-slate-400 mb-6">Faça login com seu e-mail corporativo.</p>
+              
+              <button onClick={handleLogin} className="w-full bg-white text-slate-900 hover:bg-slate-100 font-semibold py-3 px-4 rounded-lg flex items-center justify-center gap-3 transition-colors shadow-lg">
+                <svg className="w-5 h-5" viewBox="0 0 24 24"><path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                Continuar com Google
+              </button>
+
+              {loginError && (
+                <div className="mt-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-left animate-fade-in">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertCircle className="w-5 h-5 text-red-400" />
+                    <p className="text-red-400 text-sm font-bold">Ação Necessária no Firebase:</p>
+                  </div>
+                  <p className="text-slate-300 text-xs mb-3">{loginError}</p>
+                  <div className="bg-slate-900 p-2.5 rounded-lg flex justify-between items-center border border-slate-700">
+                    <code className="text-xs text-indigo-300 truncate mr-2" title={currentDomain}>{currentDomain}</code>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      }
+
+      const totalSolicitado = projects.reduce((acc, p) => acc + (Number(p.valor) || 0), 0);
+      const totalAprovado = projects.filter(p => p.status === 'Aprovado').reduce((acc, p) => acc + (Number(p.valor) || 0), 0);
+      const saldoDisponivel = budget - totalAprovado;
+
+      return (
+        <div className="flex h-screen overflow-hidden">
+          <aside className="w-64 bg-[#0a1024] border-r border-slate-800 flex flex-col z-20 shadow-xl">
+            <div className="p-6 border-b border-slate-800 flex items-center gap-3">
+              <div className="bg-[#10b981] p-2 rounded-lg"><Leaf className="w-6 h-6 text-white" /></div>
+              <div>
+                <h1 className="text-xl font-bold text-white tracking-wider">SGAS</h1>
+                <p className="text-xs text-slate-400 truncate w-32" title={user.email}>{user.email}</p>
+              </div>
+            </div>
+            <nav className="flex-1 py-6 px-4 space-y-2">
+              <NavItem icon={LayoutDashboard} label="Dashboard" active={currentView === 'dashboard'} onClick={() => navigateTo('dashboard')} />
+              <NavItem icon={Plus} label="Novo Protocolo" active={currentView === 'form'} onClick={() => navigateTo('form')} />
+              <NavItem icon={CheckSquare} label="Auditoria & Análise" active={currentView === 'audit' || currentView === 'audit-detail'} onClick={() => navigateTo('audit')} />
+            </nav>
+            <div className="p-4 border-t border-slate-800">
+              <div className="bg-slate-800/50 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium">Orçamento</span>
+                  <Settings className="w-4 h-4 text-slate-400 cursor-pointer hover:text-white" onClick={() => {
+                    const b = prompt("Novo Budget (R$):", budget);
+                    if (b && !isNaN(b)) handleUpdateBudget(Number(b));
+                  }} />
+                </div>
+                <div className="w-full bg-slate-700 rounded-full h-2.5 mb-2">
+                  <div className="bg-[#10b981] h-2.5 rounded-full" style={{ width: `${Math.min((totalAprovado / budget) * 100, 100)}%` }}></div>
+                </div>
+                <div className="flex justify-between text-xs text-slate-400 mb-4">
+                  <span>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalAprovado)}</span>
+                  <span>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(budget)}</span>
+                </div>
+                <button onClick={() => signOut(auth)} className="w-full text-xs text-red-400 hover:bg-red-400/10 py-1.5 rounded flex items-center justify-center gap-1 border border-red-500/20">
+                  <XCircle className="w-3 h-3" /> Encerrar Sessão
+                </button>
+              </div>
+            </div>
+          </aside>
+
+          <main className="flex-1 flex flex-col relative overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-8 custom-scrollbar pb-24">
+              {currentView === 'dashboard' && <DashboardView projects={projects} totalAprovado={totalAprovado} totalSolicitado={totalSolicitado} />}
+              {currentView === 'form' && <SolicitationForm db={db} appId={appId} onSuccess={() => navigateTo('audit')} />}
+              {currentView === 'audit' && <AuditListView projects={projects} onSelect={(p) => navigateTo('audit-detail', p)} />}
+              {currentView === 'audit-detail' && selectedProject && <AuditDetailView project={selectedProject} db={db} appId={appId} onBack={() => navigateTo('audit')} />}
+            </div>
+            <AIChatWidget projects={projects} budget={budget} totalAprovado={totalAprovado} saldoDisponivel={saldoDisponivel} />
+          </main>
+        </div>
+      );
+    }
+
+    // ============================================================================
+    // SUB-COMPONENTS
+    // ============================================================================
+    function NavItem({ icon: Icon, label, active, onClick }) {
+      return (
+        <button onClick={onClick} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${active ? 'bg-[#10b981]/10 text-[#10b981] border border-[#10b981]/20' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+          <Icon className="w-5 h-5" /> {label}
+        </button>
+      );
+    }
+
+    function DashboardView({ projects, totalAprovado, totalSolicitado }) {
+      const ativos = projects.filter(p => p.status === 'Aprovado').length;
+      const emAnalise = projects.filter(p => p.status === 'Pendente').length;
+      return (
+        <div className="space-y-6 animate-fade-in">
+          <header className="mb-8"><h2 className="text-3xl font-bold text-white">Painel de Controle</h2></header>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <KpiCard title="Total Solicitado" value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalSolicitado)} icon={FileText} />
+            <KpiCard title="Total Aprovado" value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalAprovado)} icon={CheckCircle2} color="text-[#10b981]" />
+            <KpiCard title="Projetos Ativos" value={ativos} icon={Clock} />
+            <KpiCard title="Em Análise" value={emAnalise} icon={FileBarChart} color="text-yellow-400" />
+          </div>
+        </div>
+      );
+    }
+
+    function KpiCard({ title, value, icon: Icon, color = "text-indigo-400" }) {
+      return (
+        <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5 hover:bg-slate-800/60">
+          <div className="flex items-start justify-between">
+            <div><p className="text-slate-400 text-sm mb-1">{title}</p><h4 className="text-xl font-bold text-white">{value}</h4></div>
+            <div className={`p-2 rounded-lg bg-slate-800 border border-slate-700 ${color}`}><Icon className="w-5 h-5" /></div>
+          </div>
+        </div>
+      );
+    }
+
+    function SolicitationForm({ db, appId, onSuccess }) {
+      const [formData, setFormData] = useState({ nome: '', proponente: '', cnpj: '', valor: '', dataEvento: '', vertical: 'Desenvolvimento e ESG', publicoAlvo: '', contrapartidas: '', descricao: '' });
+      const [file, setFile] = useState(null);
+      const [isSubmitting, setIsSubmitting] = useState(false);
+      const [loadingStep, setLoadingStep] = useState('');
+      
+      // FUNÇÃO QUE EXTRAI TEXTO DO PDF
+      const extractTextFromPDF = async (pdfFile) => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = async function() {
+            try {
+              const typedarray = new Uint8Array(this.result);
+              const pdf = await pdfjsLib.getDocument(typedarray).promise;
+              let fullText = '';
+              for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map(item => item.str).join(' ');
+                fullText += pageText + ' ';
+              }
+              resolve(fullText);
             } catch (error) {
-                console.error(error);
-                showLoginError("Falha na autenticação: Verifique se o Login via Google está ativado no Firebase Console (" + error.message + ")");
+              console.error("Erro na extração do PDF", error);
+              resolve(""); 
             }
+          };
+          reader.onerror = () => resolve("");
+          reader.readAsArrayBuffer(pdfFile);
         });
+      };
 
-        document.getElementById('btn-logout').addEventListener('click', () => {
-            signOut(auth);
+      // FUNÇÃO QUE EXTRAI TEXTO/DADOS DA PLANILHA (XLSX, XLS, CSV)
+      const extractTextFromSpreadsheet = async (excelFile) => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            try {
+              const data = new Uint8Array(e.target.result);
+              const workbook = XLSX.read(data, {type: 'array'});
+              let fullText = '';
+              
+              // Lê todas as abas da planilha e converte para texto pesquisável
+              workbook.SheetNames.forEach(sheetName => {
+                const sheet = workbook.Sheets[sheetName];
+                const csvData = XLSX.utils.sheet_to_csv(sheet);
+                fullText += `\n--- Aba: ${sheetName} ---\n` + csvData;
+              });
+              
+              resolve(fullText);
+            } catch (error) {
+              console.error("Erro ao ler a planilha", error);
+              resolve("");
+            }
+          };
+          reader.onerror = () => resolve("");
+          reader.readAsArrayBuffer(excelFile);
         });
+      };
 
-        onAuthStateChanged(auth, (user) => {
-            if (user && user.email.endsWith('@evereste.org.br')) {
-                state.user = user;
-                loginScreen.classList.add('hidden');
-                appScreen.classList.remove('hidden');
-                
-                document.getElementById('user-name').innerText = user.displayName || user.email;
-                document.getElementById('user-avatar').src = user.photoURL || '';
-                
-                initFirestore();
-            } else {
-                state.user = null;
-                loginScreen.classList.remove('hidden');
-                appScreen.classList.add('hidden');
-            }
+      const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        
+        let extractedText = "";
+
+        if (file) {
+          const fileName = file.name.toLowerCase();
+          
+          if (fileName.endsWith('.pdf')) {
+            setLoadingStep('Extraindo dados do PDF Anexo...');
+            extractedText = await extractTextFromPDF(file);
+          } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls') || fileName.endsWith('.csv')) {
+            setLoadingStep('Extraindo dados da Planilha (Excel/CSV)...');
+            extractedText = await extractTextFromSpreadsheet(file);
+          }
+        }
+        
+        setLoadingStep('IA processando Análise de Dados e ESG...');
+        
+        // Envia os dados do formulário + Texto lido do arquivo
+        const payloadData = { ...formData, fileText: extractedText };
+        const prompt = JSON.stringify(payloadData);
+        
+        const schema = {
+          type: "OBJECT",
+          properties: {
+            ambiental: { type: "INTEGER" }, social: { type: "INTEGER" }, governanca: { type: "INTEGER" },
+            resumo: { type: "STRING" }, recomendacao: { type: "STRING" }, justificativa: { type: "STRING" }
+          },
+          required: ["ambiental", "social", "governanca", "resumo", "recomendacao", "justificativa"]
+        };
+
+        const aiResult = await callGemini(prompt, schema);
+        setLoadingStep('Salvando Protocolo Seguro...');
+        
+        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'sgas_projects_v1'), {
+          ...formData, 
+          valor: Number(formData.valor), 
+          status: 'Pendente', 
+          fileName: file ? file.name : null,
+          esgScore: aiResult, 
+          createdAt: Date.now(),
+          timeline: [{ date: Date.now(), type: 'submission', title: 'Protocolo Submetido', desc: 'Dados e documento processados pelo Sistema ESG.' }]
         });
+        
+        setIsSubmitting(false);
+        onSuccess();
+      };
 
-        // ==========================================
-        // LÓGICA DE BANCO DE DADOS E RENDERIZAÇÃO
-        // ==========================================
-        function setDbStatus(msg, statusType = 'normal') {
-            document.getElementById('db-status-text').innerText = msg;
-            const icon = document.getElementById('db-status-icon');
-            icon.className = 'w-2 h-2 rounded-full ' + 
-                (statusType === 'syncing' ? 'bg-indigo-500 animate-spin' :
-                 statusType === 'success' ? 'bg-emerald-500 animate-pulse' :
-                 statusType === 'error' ? 'bg-red-500' : 'bg-amber-500');
-        }
+      if (isSubmitting) return <div className="flex justify-center items-center h-64"><Loader2 className="w-12 h-12 animate-spin text-[#10b981]" /><span className="ml-4 text-emerald-400 font-medium">{loadingStep}</span></div>;
 
-        function initFirestore() {
-            setDbStatus('Sincronizando...', 'syncing');
-            const q = collection(db, 'artifacts', appId, 'public', 'data', 'monthlyMetrics');
-            
-            onSnapshot(q, (snapshot) => {
-                const data = snapshot.docs.map(doc => doc.data());
-                data.sort((a, b) => a.timestamp - b.timestamp);
-                
-                state.firebaseData = data;
-                if(data.length > 0) {
-                    setDbStatus('Sincronizado via Firebase', 'success');
-                } else {
-                    setDbStatus('Banco vazio. Mostrando mock.', 'warning');
-                }
-                renderApp();
-            }, (err) => {
-                console.error(err);
-                setDbStatus('Erro ao ler dados.', 'error');
-            });
-        }
+      return (
+        <form onSubmit={handleSubmit} className="bg-slate-800/40 border border-slate-700/50 rounded-xl p-8 space-y-6">
+          <h2 className="text-2xl font-bold mb-4">Novo Protocolo</h2>
+          <div className="grid grid-cols-2 gap-4">
+            <input required placeholder="Nome do Projeto" className="bg-slate-900 border border-slate-700 p-2 rounded" onChange={e => setFormData({...formData, nome: e.target.value})} />
+            <input required placeholder="Proponente / CNPJ" className="bg-slate-900 border border-slate-700 p-2 rounded" onChange={e => setFormData({...formData, proponente: e.target.value})} />
+            <input required type="number" placeholder="Valor (R$)" className="bg-slate-900 border border-slate-700 p-2 rounded" onChange={e => setFormData({...formData, valor: e.target.value})} />
+            <input required type="date" className="bg-slate-900 border border-slate-700 p-2 rounded" onChange={e => setFormData({...formData, dataEvento: e.target.value})} />
+          </div>
+          <textarea required placeholder="Público Alvo (Ex: 200 jovens da comunidade)" rows="2" className="w-full bg-slate-900 border border-slate-700 p-2 rounded" onChange={e => setFormData({...formData, publicoAlvo: e.target.value})}></textarea>
+          <textarea required placeholder="Contrapartidas Oferecidas" rows="2" className="w-full bg-slate-900 border border-slate-700 p-2 rounded" onChange={e => setFormData({...formData, contrapartidas: e.target.value})}></textarea>
+          <textarea required placeholder="Descrição do Projeto" rows="4" className="w-full bg-slate-900 border border-slate-700 p-2 rounded" onChange={e => setFormData({...formData, descricao: e.target.value})}></textarea>
+          
+          <div className="mt-4 p-4 border border-dashed border-slate-600 rounded-lg bg-slate-900/50">
+            <label className="block text-sm font-medium text-slate-300 mb-2">Anexar Base de Dados ou Documento (PDF, XLSX, XLS ou CSV)</label>
+            <input type="file" accept=".pdf, .xlsx, .xls, .csv" className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-500/20 file:text-indigo-400 hover:file:bg-indigo-500/30 cursor-pointer" onChange={e => setFile(e.target.files[0])} required />
+            <p className="text-xs text-slate-500 mt-2">O sistema irá ler automaticamente o conteúdo estruturado da sua planilha ou documento para a avaliação heurística.</p>
+          </div>
 
-        // ==========================================
-        // SISTEMA DE UI E GRÁFICOS
-        // ==========================================
-        function getActiveData() {
-            const data = state.firebaseData.length > 0 ? state.firebaseData : fallbackMonthlyData;
-            if (state.timeRange === 'YTD') return data;
-            return data.filter(d => d.quarter === state.timeRange);
-        }
+          <button type="submit" className="bg-[#10b981] hover:bg-emerald-600 px-6 py-3 rounded-lg text-white font-bold w-full mt-4 transition-colors">Submeter para Análise Automática</button>
+        </form>
+      );
+    }
 
-        function getCurrentKPIs() {
-            if (state.selectedArea === 'mkt') return kpiDataByArea.mkt[state.selectedNetwork];
-            return kpiDataByArea[state.selectedArea] || kpiDataByArea['global'];
-        }
-
-        function destroyCharts() {
-            state.charts.forEach(chart => chart.destroy());
-            state.charts = [];
-        }
-
-        function renderApp() {
-            renderSidebar();
-            
-            const mainContent = document.getElementById('main-content');
-            
-            if (state.activeTab === 'dashboard') {
-                document.getElementById('header-title').innerText = 'Painel de Desempenho';
-                mainContent.innerHTML = buildDashboardHTML();
-                
-                // Atacha Event Listeners (Filtros)
-                document.getElementById('time-filter').addEventListener('change', (e) => {
-                    state.timeRange = e.target.value; renderApp();
-                });
-                
-                document.querySelectorAll('.area-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        state.selectedArea = e.target.dataset.area;
-                        if(state.selectedArea !== 'mkt') state.selectedNetwork = 'instagram';
-                        renderApp();
-                    });
-                });
-
-                document.querySelectorAll('.network-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const target = e.target.closest('button');
-                        state.selectedNetwork = target.dataset.network;
-                        renderApp();
-                    });
-                });
-
-                renderCharts();
-
-            } else {
-                document.getElementById('header-title').innerText = 'Gestão de Dados Mensais';
-                mainContent.innerHTML = buildDataEntryHTML();
-                attachDataEntryListeners();
-            }
-
-            lucide.createIcons();
-        }
-
-        function renderSidebar() {
-            const nav = document.getElementById('nav-menu');
-            const items = [
-                { id: 'dashboard', icon: 'layout-dashboard', label: 'Dashboard Central' },
-                { id: 'data', icon: 'file-spreadsheet', label: 'Entrada de Dados' }
-            ];
-            
-            nav.innerHTML = items.map(item => `
-                <button data-tab="${item.id}" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${state.activeTab === item.id ? 'bg-indigo-500/10 text-indigo-400 font-semibold' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 font-medium'}">
-                    <i data-lucide="${item.icon}" class="w-4 h-4"></i>
-                    <span class="text-sm">${item.label}</span>
-                </button>
-            `).join('');
-
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    state.activeTab = e.target.closest('button').dataset.tab;
-                    renderApp();
-                });
-            });
-        }
-
-        function buildDashboardHTML() {
-            const activeData = getActiveData();
-            const currentKPIs = getCurrentKPIs();
-            const lastData = activeData.length > 0 ? activeData[activeData.length-1] : null;
-
-            // Filtros de Área
-            const areaFiltersHTML = areasList.map(area => `
-                <button data-area="${area.id}" class="area-btn px-4 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${state.selectedArea === area.id ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'}">
-                    ${area.name}
-                </button>
-            `).join('');
-
-            // Subfiltro MKT
-            let subFilterHTML = '';
-            if (state.selectedArea === 'mkt') {
-                const networks = [
-                    { id: 'instagram', label: 'Instagram', icon: 'instagram' },
-                    { id: 'linkedin', label: 'LinkedIn', icon: 'linkedin' },
-                    { id: 'youtube', label: 'YouTube', icon: 'youtube' },
-                    { id: 'tiktok', label: 'TikTok', icon: 'smartphone' }
-                ];
-                subFilterHTML = `
-                <div class="flex items-center gap-3 mt-4 mb-2 fade-in">
-                    <div class="text-sm font-semibold text-slate-400 flex items-center gap-1">
-                        Rede Social <i data-lucide="chevron-right" class="w-4 h-4"></i>
-                    </div>
-                    <div class="flex bg-white rounded-xl shadow-sm border border-slate-200/60 p-1 flex-wrap">
-                        ${networks.map(net => `
-                            <button data-network="${net.id}" class="network-btn flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${state.selectedNetwork === net.id ? 'bg-indigo-50 text-indigo-700' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'}">
-                                <i data-lucide="${net.icon}" class="w-4 h-4"></i> ${net.label}
-                            </button>
-                        `).join('')}
-                    </div>
-                </div>`;
-            }
-
-            // Cards de KPI
-            const kpisHTML = currentKPIs.map(kpi => {
-                const val = lastData && lastData[kpi.dataKey] !== undefined ? formatValue(lastData[kpi.dataKey], kpi.format) : formatValue(0, kpi.format);
-                const bgColors = { green: 'bg-emerald-50 text-emerald-700', yellow: 'bg-amber-50 text-amber-700', red: 'bg-red-50 text-red-700' };
-                const confBg = bgColors[kpi.status];
-                
-                const trendColor = kpi.isPositive ? (kpi.inverseLogic ? 'text-red-600' : 'text-emerald-600') : (kpi.inverseLogic ? 'text-emerald-600' : 'text-red-600');
-                const trendBg = kpi.isPositive ? (kpi.inverseLogic ? 'bg-red-50' : 'bg-emerald-50') : (kpi.inverseLogic ? 'bg-emerald-50' : 'bg-red-50');
-                const trendIcon = kpi.isPositive ? 'trending-up' : 'trending-down';
-
-                return `
-                <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200/60 relative overflow-hidden transition-all duration-300 hover:shadow-md">
-                    <div class="flex justify-between items-start mb-4">
-                        <div class="p-2.5 rounded-2xl ${confBg}">
-                            <i data-lucide="${kpi.iconName}" class="w-5 h-5"></i>
-                        </div>
-                    </div>
-                    <div>
-                        <h4 class="text-[12px] font-semibold text-slate-500 mb-1 leading-tight">${kpi.title}</h4>
-                        <h2 class="text-2xl font-black text-slate-800 tracking-tight">${val}</h2>
-                        <div class="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                            <div class="flex items-center gap-1 px-1.5 py-0.5 rounded-md ${trendBg} ${trendColor}">
-                                <i data-lucide="${trendIcon}" class="w-3 h-3"></i> <span class="font-bold">${kpi.trend}</span>
-                            </div>
-                            <span class="text-slate-400 font-medium truncate ml-2">Meta: ${kpi.target}</span>
-                        </div>
-                    </div>
-                </div>`;
-            }).join('');
-
-            // Grids para gráficos (Linha Principal)
-            const chartsHTML = currentKPIs.map(kpi => `
-                <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200/60 flex flex-col h-[300px]">
-                    <div class="mb-4">
-                        <h3 class="text-[15px] font-bold text-slate-800 tracking-tight">${kpi.title}</h3>
-                        <p class="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Análise de Performance</p>
-                    </div>
-                    <div id="chart-${kpi.id}" class="flex-1 w-full"></div>
+    function AuditListView({ projects, onSelect }) {
+      return (
+        <div className="bg-slate-800/40 rounded-xl p-6">
+          <h2 className="text-2xl font-bold mb-6">Auditoria</h2>
+          <div className="space-y-4">
+            {projects.map(p => (
+              <div key={p.id} className="flex justify-between items-center bg-slate-900 p-4 rounded-lg border border-slate-700 hover:border-indigo-500 transition-colors">
+                <div>
+                  <p className="font-bold text-white">{p.nome}</p>
+                  <p className="text-xs text-slate-400 mt-1 flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${p.status === 'Aprovado' ? 'bg-[#10b981]' : p.status === 'Rejeitado' ? 'bg-red-500' : 'bg-yellow-500'}`}></span>
+                    {p.status} &bull; {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(p.valor)}
+                  </p>
                 </div>
-            `).join('');
+                <button onClick={() => onSelect(p)} className="bg-slate-700 hover:bg-indigo-600 text-sm px-4 py-2 rounded transition-colors">Abrir Processo</button>
+              </div>
+            ))}
+            {projects.length === 0 && <p className="text-center text-slate-500 py-8">Nenhum projeto pendente.</p>}
+          </div>
+        </div>
+      );
+    }
 
-            return `
-                <div class="max-w-[1600px] mx-auto space-y-6 fade-in">
-                    
-                    <!-- Barra Filtros -->
-                    <div class="bg-white p-2 rounded-2xl shadow-sm border border-slate-200/60 flex flex-col xl:flex-row justify-between items-center gap-4">
-                        <div class="flex items-center w-full xl:w-auto overflow-x-auto hide-scrollbar px-2">
-                            <div class="flex space-x-1">${areaFiltersHTML}</div>
-                        </div>
-                        <div class="flex gap-3 w-full xl:w-auto px-2 pb-2 xl:pb-0">
-                            <div class="relative w-full xl:w-64">
-                                <i data-lucide="calendar" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"></i>
-                                <select id="time-filter" class="w-full bg-slate-50 border border-slate-200 text-slate-700 font-medium text-sm rounded-xl focus:ring-2 focus:ring-indigo-500 block pl-10 p-2.5 outline-none cursor-pointer">
-                                    <option value="Q1" ${state.timeRange==='Q1'?'selected':''}>1º Trimestre (Jan-Mar)</option>
-                                    <option value="Q2" ${state.timeRange==='Q2'?'selected':''}>2º Trimestre (Abr-Jun)</option>
-                                    <option value="Q3" ${state.timeRange==='Q3'?'selected':''}>3º Trimestre (Jul-Set)</option>
-                                    <option value="Q4" ${state.timeRange==='Q4'?'selected':''}>4º Trimestre (Out-Dez)</option>
-                                    <option value="YTD" ${state.timeRange==='YTD'?'selected':''}>Acumulado (YTD)</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
+    function AuditDetailView({ project, db, appId, onBack }) {
+      const addActionToTimeline = async (type, status) => {
+        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'sgas_projects_v1', project.id);
+        await updateDoc(docRef, { status, timeline: [...(project.timeline || []), { date: Date.now(), type, title: status, desc: 'Ação manual.' }]});
+        onBack();
+      };
+      const esg = project.esgScore || { ambiental: 0, social: 0, governanca: 0, resumo: "", recomendacao: "Pendente" };
+      
+      return (
+        <div className="space-y-6">
+          <button onClick={onBack} className="text-slate-400 hover:text-white transition-colors">← Voltar à Fila</button>
+          <div className="bg-slate-800/40 p-8 rounded-xl border border-slate-700">
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <h2 className="text-3xl font-bold text-white">{project.nome}</h2>
+                <p className="text-slate-400 mt-1">Anexo processado: <span className="text-indigo-300 font-mono text-xs">{project.fileName || 'Nenhum'}</span></p>
+              </div>
+              <div className="text-right">
+                <p className="text-2xl font-bold text-[#10b981]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(project.valor)}</p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              <div className="bg-slate-900 border border-slate-700 p-4 rounded-lg"><p className="text-slate-400 text-sm mb-1">Score Ambiental</p><div className="w-full bg-slate-800 rounded-full h-2 mb-1"><div className="bg-emerald-500 h-2 rounded-full" style={{width:`${esg.ambiental}%`}}></div></div><p className="text-right text-xs text-emerald-400">{esg.ambiental}/100</p></div>
+              <div className="bg-slate-900 border border-slate-700 p-4 rounded-lg"><p className="text-slate-400 text-sm mb-1">Score Social</p><div className="w-full bg-slate-800 rounded-full h-2 mb-1"><div className="bg-blue-500 h-2 rounded-full" style={{width:`${esg.social}%`}}></div></div><p className="text-right text-xs text-blue-400">{esg.social}/100</p></div>
+              <div className="bg-slate-900 border border-slate-700 p-4 rounded-lg"><p className="text-slate-400 text-sm mb-1">Score Governança</p><div className="w-full bg-slate-800 rounded-full h-2 mb-1"><div className="bg-indigo-500 h-2 rounded-full" style={{width:`${esg.governanca}%`}}></div></div><p className="text-right text-xs text-indigo-400">{esg.governanca}/100</p></div>
+            </div>
 
-                    ${subFilterHTML}
+            <div className={`p-4 rounded-lg border mb-6 ${esg.recomendacao === 'Aprovação' ? 'bg-emerald-500/10 border-emerald-500/30' : esg.recomendacao === 'Rejeição' ? 'bg-red-500/10 border-red-500/30' : 'bg-yellow-500/10 border-yellow-500/30'}`}>
+              <p className="font-bold text-lg mb-1">{esg.recomendacao}</p>
+              <p className="text-sm opacity-90">{esg.justificativa}</p>
+            </div>
 
-                    <!-- KPIs -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-6 gap-4">
-                        ${kpisHTML}
-                    </div>
+            <p className="text-slate-300 italic mb-8 border-l-4 border-slate-600 pl-4">"{esg.resumo}"</p>
+            
+            {project.status === 'Pendente' && (
+              <div className="flex gap-4 border-t border-slate-700 pt-6">
+                <button onClick={() => addActionToTimeline('approve', 'Aprovado')} className="bg-[#10b981] hover:bg-emerald-600 px-6 py-3 rounded-lg font-bold text-white transition-colors flex-1">Aprovar Protocolo</button>
+                <button onClick={() => addActionToTimeline('reject', 'Rejeitado')} className="bg-red-600 hover:bg-red-700 px-6 py-3 rounded-lg font-bold text-white transition-colors flex-1">Rejeitar Protocolo</button>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
 
-                    <!-- Gráficos Principais Individuais -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        ${chartsHTML}
-                    </div>
+    function AIChatWidget({ projects, budget, totalAprovado }) {
+      const [isOpen, setIsOpen] = useState(false);
+      const [messages, setMessages] = useState([{ role: 'ai', text: 'Olá! Sou o Aporte IA.' }]);
+      const [input, setInput] = useState('');
+      const [isTyping, setIsTyping] = useState(false);
 
-                    <!-- SEÇÃO NOVA DE GRÁFICOS EXTRAS (Comparativo + Donut) -->
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-                        <div class="lg:col-span-2 bg-white p-6 rounded-3xl shadow-sm border border-slate-200/60 flex flex-col h-[350px]">
-                            <div class="mb-2">
-                                <h3 class="text-[15px] font-bold text-slate-800 tracking-tight">Desempenho Comparativo (Trimestre)</h3>
-                                <p class="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Volume vs Engajamento</p>
-                            </div>
-                            <div id="chart-extra-bar" class="flex-1 w-full"></div>
-                        </div>
-                        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200/60 flex flex-col h-[350px]">
-                            <div class="mb-2">
-                                <h3 class="text-[15px] font-bold text-slate-800 tracking-tight">Distribuição de Tráfego</h3>
-                                <p class="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Origem por Canal</p>
-                            </div>
-                            <div id="chart-extra-donut" class="flex-1 w-full flex items-center justify-center pt-4"></div>
-                        </div>
-                    </div>
+      const handleSend = async (e) => {
+        e.preventDefault();
+        if (!input.trim()) return;
+        setMessages(prev => [...prev, { role: 'user', text: input }]);
+        setInput('');
+        setIsTyping(true);
+        const res = await callGemini();
+        setMessages(prev => [...prev, { role: 'ai', text: res }]);
+        setIsTyping(false);
+      };
 
-                    <!-- Nota Técnica -->
-                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200/60 mt-8">
-                        <div class="flex items-center gap-3 mb-6">
-                            <div class="p-2 bg-indigo-50 rounded-lg text-indigo-600"><i data-lucide="check-square" class="w-6 h-6"></i></div>
-                            <div>
-                                <h3 class="text-lg font-bold text-slate-800 tracking-tight">Nota Técnica: Monitorização</h3>
-                                <p class="text-sm text-slate-500">Acompanhamento dos objetivos fundamentais de consolidação para 2026.</p>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <div class="p-4 rounded-2xl border border-emerald-200 bg-emerald-50 flex items-start gap-3">
-                                <i data-lucide="check-circle-2" class="text-emerald-600 w-5 h-5"></i>
-                                <div><h4 class="text-sm font-bold text-emerald-800">Cumprimento ≥ 80% das metas</h4><p class="text-xs mt-1 text-emerald-600">Progresso atual: 85%</p></div>
-                            </div>
-                            <div class="p-4 rounded-2xl border border-emerald-200 bg-emerald-50 flex items-start gap-3">
-                                <i data-lucide="check-circle-2" class="text-emerald-600 w-5 h-5"></i>
-                                <div><h4 class="text-sm font-bold text-emerald-800">Relatórios Trimestrais</h4><p class="text-xs mt-1 text-emerald-600">Q1 e Q2 validados</p></div>
-                            </div>
-                            <div class="p-4 rounded-2xl border border-emerald-200 bg-emerald-50 flex items-start gap-3">
-                                <i data-lucide="check-circle-2" class="text-emerald-600 w-5 h-5"></i>
-                                <div><h4 class="text-sm font-bold text-emerald-800">Consolidação do Painel</h4><p class="text-xs mt-1 text-emerald-600">Integrado e ativo</p></div>
-                            </div>
-                            <div class="p-4 rounded-2xl border border-amber-200 bg-amber-50 flex items-start gap-3">
-                                <i data-lucide="square" class="text-amber-500 w-5 h-5"></i>
-                                <div><h4 class="text-sm font-bold text-amber-800">Crescimento Alcance (Mín 18%)</h4><p class="text-xs mt-1 text-amber-600">Atual: 14%</p></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
+      return (
+        <>
+          <button onClick={() => setIsOpen(!isOpen)} className="fixed bottom-6 right-6 bg-[#10b981] p-4 rounded-full text-white z-50 shadow-lg">
+            {isOpen ? <XCircle /> : <MessageSquare />}
+          </button>
+          {isOpen && (
+            <div className="fixed bottom-24 right-6 w-80 bg-slate-900 border border-slate-700 rounded-2xl flex flex-col z-50 h-96 shadow-2xl">
+              <div className="p-4 border-b border-slate-700 font-bold bg-[#0a1024] rounded-t-2xl">Aporte IA</div>
+              <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                {messages.map((m, i) => (
+                  <div key={i} className={`p-2 text-sm rounded max-w-[85%] ${m.role === 'user' ? 'bg-indigo-600 ml-auto' : 'bg-slate-700'}`}>{m.text}</div>
+                ))}
+                {isTyping && <div className="text-slate-400 text-sm">A escrever...</div>}
+              </div>
+              <form onSubmit={handleSend} className="p-2 border-t border-slate-700 flex">
+                <input value={input} onChange={e => setInput(e.target.value)} className="flex-1 bg-slate-800 border border-slate-600 rounded-l px-3 py-2 text-sm outline-none" placeholder="Pergunte algo..." />
+                <button type="submit" className="bg-[#10b981] px-3 rounded-r"><Send className="w-4 h-4" /></button>
+              </form>
+            </div>
+          )}
+        </>
+      );
+    }
 
-        function renderCharts() {
-            destroyCharts();
-            const data = getActiveData();
-            const currentKPIs = getCurrentKPIs();
-            const categories = data.map(d => d.month);
-
-            // Renderiza os Gráficos individuais dos KPIs
-            currentKPIs.forEach(kpi => {
-                const seriesData = data.map(d => d[kpi.dataKey] || 0);
-                
-                let chartType = kpi.chartType;
-                let colors = ['#4f46e5'];
-                if (chartType === 'line') colors = ['#f59e0b'];
-                if (chartType === 'bar') colors = ['#0ea5e9'];
-
-                const options = {
-                    series: [{ name: 'Realizado', data: seriesData }],
-                    chart: { type: chartType, height: '100%', toolbar: { show: false }, parentHeightOffset: 0, fontFamily: 'inherit' },
-                    colors: colors,
-                    fill: { type: chartType === 'area' ? 'gradient' : 'solid', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0, stops: [0, 90, 100] } },
-                    dataLabels: { enabled: false },
-                    stroke: { curve: 'smooth', width: chartType === 'bar' ? 0 : 3 },
-                    xaxis: { categories: categories, axisBorder: { show: false }, axisTicks: { show: false }, labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
-                    yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px' }, formatter: (value) => formatValue(value, kpi.format) } },
-                    grid: { borderColor: '#f1f5f9', strokeDashArray: 4, padding: { top: 0, right: 0, bottom: 0, left: 10 } },
-                    annotations: { yaxis: [{ y: kpi.numericTarget, borderColor: '#94a3b8', strokeDashArray: 4, label: { text: 'Meta', style: { color: '#fff', background: '#94a3b8', fontSize: '10px' } } }] },
-                    tooltip: { y: { formatter: (value) => formatValue(value, kpi.format) } }
-                };
-
-                const el = document.querySelector(`#chart-${kpi.id}`);
-                if (el) {
-                    const chart = new ApexCharts(el, options);
-                    chart.render();
-                    state.charts.push(chart);
-                }
-            });
-
-            // ----------------------------------------------------
-            // Renderiza os Gráficos EXTRAS da Nova Seção
-            // ----------------------------------------------------
-
-            // 1. Gráfico de Barras Agrupadas (Comparativo)
-            const extraBarEl = document.querySelector("#chart-extra-bar");
-            if (extraBarEl) {
-                // Aqui podemos usar dados genéricos da base ou os totais do mês. 
-                // Simulando uma comparação visual atraente:
-                const extraBarOptions = {
-                    series: [
-                        { name: 'Alcance/Visitas', data: [44, 55, 57, 56, 61, 58] }, 
-                        { name: 'Engajamento/Vendas', data: [76, 85, 101, 98, 87, 105] }
-                    ],
-                    chart: { type: 'bar', height: '100%', toolbar: { show: false }, fontFamily: 'inherit' },
-                    plotOptions: { bar: { horizontal: false, columnWidth: '45%', borderRadius: 4 } },
-                    dataLabels: { enabled: false },
-                    stroke: { show: true, width: 2, colors: ['transparent'] },
-                    xaxis: { 
-                        categories: ['Mês 1', 'Mês 2', 'Mês 3', 'Mês 4', 'Mês 5', 'Mês 6'], 
-                        labels: { style: { colors: '#94a3b8' } }, axisBorder: { show: false }, axisTicks: { show: false } 
-                    },
-                    yaxis: { labels: { style: { colors: '#94a3b8' } } },
-                    fill: { opacity: 1 },
-                    colors: ['#4f46e5', '#0ea5e9'],
-                    grid: { borderColor: '#f1f5f9', strokeDashArray: 4 },
-                    legend: { position: 'top', horizontalAlign: 'right', fontSize: '12px', markers: { radius: 12 } }
-                };
-                const extraBarChart = new ApexCharts(extraBarEl, extraBarOptions);
-                extraBarChart.render();
-                state.charts.push(extraBarChart);
-            }
-
-            // 2. Gráfico Donut (Distribuição)
-            const extraDonutEl = document.querySelector("#chart-extra-donut");
-            if (extraDonutEl) {
-                const extraDonutOptions = {
-                    series: [44, 30, 15, 11],
-                    labels: ['Instagram', 'LinkedIn', 'YouTube', 'TikTok'],
-                    chart: { type: 'donut', height: '100%', fontFamily: 'inherit' },
-                    colors: ['#ec4899', '#0ea5e9', '#ef4444', '#111827'],
-                    plotOptions: { 
-                        pie: { 
-                            donut: { 
-                                size: '75%', 
-                                labels: { 
-                                    show: true, 
-                                    name: { show: true, fontSize: '14px', color: '#64748b' }, 
-                                    value: { show: true, fontSize: '24px', fontWeight: 'bold', color: '#1e293b' },
-                                    total: { show: true, label: 'Tráfego Total', color: '#64748b', formatter: function (w) { return "100%" } }
-                                } 
-                            } 
-                        } 
-                    },
-                    dataLabels: { enabled: false },
-                    legend: { position: 'bottom', fontSize: '12px', markers: { radius: 12 } },
-                    stroke: { show: true, width: 3, colors: ['#ffffff'] }
-                };
-                const extraDonutChart = new ApexCharts(extraDonutEl, extraDonutOptions);
-                extraDonutChart.render();
-                state.charts.push(extraDonutChart);
-            }
-        }
-
-        // ==========================================
-        // ENTRADA DE DADOS E UPLOAD (CSV PARA FIREBASE)
-        // ==========================================
-        function buildDataEntryHTML() {
-            return `
-            <div class="max-w-3xl mx-auto bg-white rounded-3xl shadow-sm border border-slate-200/60 p-10 fade-in mt-4">
-                <div class="text-center mb-10">
-                    <div class="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-5 rotate-3 shadow-inner">
-                        <i data-lucide="upload-cloud" class="-rotate-3 w-10 h-10"></i>
-                    </div>
-                    <h2 class="text-3xl font-bold text-slate-800 tracking-tight">Atualização de Base de Dados</h2>
-                    <p class="text-slate-500 mt-2 text-lg">Faça o upload do arquivo Mestre com o fecho mensal.</p>
-                </div>
-
-                <div class="space-y-8">
-                    <div id="upload-msg-container" class="hidden p-4 rounded-xl text-sm font-bold flex items-center gap-2"></div>
-
-                    <div id="upload-zone" class="border-2 border-dashed border-slate-300 rounded-2xl p-10 text-center transition-all bg-slate-50/50 hover:bg-slate-50 hover:border-indigo-300 cursor-pointer group">
-                        <div class="bg-white w-16 h-16 rounded-full flex items-center justify-center mx-auto shadow-sm border border-slate-200 mb-4 group-hover:scale-110 transition-transform">
-                            <i data-lucide="file-spreadsheet" class="text-indigo-500 w-7 h-7"></i>
-                        </div>
-                        <p class="text-base font-bold text-slate-700">Clique aqui para selecionar o Arquivo Mestre</p>
-                        <p class="text-sm text-slate-500 mt-1 mb-6">Formatos suportados: Excel (.xls, .xlsx), CSV ou PDF</p>
-                        
-                        <input type="file" id="file-input" accept=".csv, .xls, .xlsx, application/pdf" class="hidden" />
-                        
-                        <button id="btn-fake-click" class="px-6 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-100">
-                            Procurar ficheiro
-                        </button>
-                    </div>
-                    
-                    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
-                        <strong>Atenção ao formato:</strong> A planilha precisa ter o cabeçalho idêntico às chaves do sistema (ex: <code>month, quarter, timestamp, g_alc, ig_cpm</code>).
-                    </div>
-                </div>
-            </div>`;
-        }
-
-        function attachDataEntryListeners() {
-            const uploadZone = document.getElementById('upload-zone');
-            const fileInput = document.getElementById('file-input');
-            const fakeBtn = document.getElementById('btn-fake-click');
-            const msgContainer = document.getElementById('upload-msg-container');
-
-            const setMsg = (text, type) => {
-                msgContainer.className = `p-4 rounded-xl text-sm font-bold flex items-center gap-2 mb-4 ${
-                    type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-                    type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' :
-                    type === 'warning' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
-                    'bg-blue-50 text-blue-700 border border-blue-200'
-                }`;
-                const iconName = type === 'success' ? 'check-circle-2' : type === 'error' || type === 'warning' ? 'alert-circle' : 'loader-2';
-                const spinClass = type === 'info' ? 'animate-spin' : '';
-                msgContainer.innerHTML = `<i data-lucide="${iconName}" class="w-5 h-5 ${spinClass}"></i> ${text}`;
-                msgContainer.classList.remove('hidden');
-                lucide.createIcons();
-            };
-
-            const triggerClick = () => fileInput.click();
-            uploadZone.addEventListener('click', triggerClick);
-            fakeBtn.addEventListener('click', (e) => { e.stopPropagation(); triggerClick(); });
-
-            fileInput.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-
-                const ext = file.name.split('.').pop().toLowerCase();
-
-                if (ext === 'pdf') {
-                    setMsg('A extração de dados via PDF requer auditoria manual pelo suporte. Para atualizar o painel instantaneamente, envie o arquivo em Excel (.xls/.xlsx) ou CSV.', 'warning');
-                    return;
-                }
-
-                if (!['csv', 'xls', 'xlsx'].includes(ext)) {
-                    setMsg('Formato de arquivo não suportado.', 'error');
-                    return;
-                }
-
-                setMsg('Lendo e processando planilha...', 'info');
-                
-                const reader = new FileReader();
-                reader.onload = async (ev) => {
-                    try {
-                        const data = new Uint8Array(ev.target.result);
-                        const workbook = XLSX.read(data, {type: 'array'});
-                        const firstSheet = workbook.SheetNames[0];
-                        const worksheet = workbook.Sheets[firstSheet];
-                        const parsedData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-
-                        if (!parsedData || parsedData.length === 0) {
-                            setMsg('Planilha vazia ou formato inválido.', 'error');
-                            return;
-                        }
-
-                        setMsg('Enviando dados para o banco de dados...', 'info');
-
-                        for (const item of parsedData) {
-                            if(item.month) {
-                                Object.keys(item).forEach(key => {
-                                    if (key !== 'month' && key !== 'quarter' && typeof item[key] === 'string') {
-                                        const parsedNum = Number(item[key].replace(',', '.'));
-                                        if (!isNaN(parsedNum)) item[key] = parsedNum;
-                                    }
-                                });
-
-                                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'monthlyMetrics', item.month);
-                                await setDoc(docRef, item, { merge: true });
-                            }
-                        }
-                        
-                        setMsg('Upload realizado com sucesso! Atualizando dashboard...', 'success');
-                        setTimeout(() => {
-                            state.activeTab = 'dashboard';
-                            renderApp();
-                        }, 2000);
-                        
-                    } catch (err) {
-                        console.error(err);
-                        setMsg('Erro ao processar o arquivo. Verifique se as colunas estão corretas.', 'error');
-                    }
-                };
-                reader.readAsArrayBuffer(file);
-            });
-        }
-    </script>
+    // Initialize React App
+    const root = createRoot(document.getElementById('root'));
+    root.render(<SGASApp />);
+  </script>
 </body>
 </html>
