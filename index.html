@@ -15,12 +15,13 @@
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 
     <style>
-        /* Ocultar barra de rolagem mas permitir o scroll */
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
         .fade-in { animation: fadeIn 0.4s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .pattern-diagonal { background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0,0,0,0.05) 5px, rgba(0,0,0,0.05) 10px); }
     </style>
 </head>
 <body class="bg-slate-50 font-sans text-slate-800 selection:bg-blue-100 h-screen overflow-hidden">
@@ -80,7 +81,6 @@
 
         <!-- CONTEÚDO -->
         <main class="flex-1 flex flex-col overflow-hidden relative">
-            <!-- CABEÇALHO -->
             <header class="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200/60 flex items-center justify-between px-8 z-10 sticky top-0">
                 <div>
                     <h2 id="header-title" class="text-xl font-bold text-slate-800 tracking-tight">Painel de Desempenho</h2>
@@ -90,8 +90,6 @@
                     </div>
                 </div>
             </header>
-
-            <!-- ÁREA DE ROLAGEM -->
             <div id="main-content" class="flex-1 overflow-auto p-6 md:p-8"></div>
         </main>
     </div>
@@ -102,9 +100,6 @@
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, onSnapshot, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // ==========================================
-        // CONFIGURAÇÃO FIREBASE E ESTADO GLOBAL
-        // ==========================================
         const firebaseConfig = {
             apiKey: "AIzaSyCIdjGR-GYaPLpVe1KHKPH2B00EPsw926E",
             authDomain: "acompanhamentokpisccsri.firebaseapp.com",
@@ -125,10 +120,10 @@
             selectedArea: 'global',
             selectedNetwork: 'instagram',
             timeRange: 'Q1',
+            isComparativeMode: false, // Novo estado para modo comparativo
             user: null,
             firebaseData: [],
             charts: [],
-            
             entryMonth: 'Jan',
             entryCategory: 'ig'
         };
@@ -140,87 +135,18 @@
             { m: 'Out', q: 'Q4', t: 10 }, { m: 'Nov', q: 'Q4', t: 11 }, { m: 'Dez', q: 'Q4', t: 12 }
         ];
 
-        // ==========================================
-        // CONFIGURAÇÃO DOS FORMULÁRIOS E CAMPOS (Alinhado 100% c/ Imagens)
-        // ==========================================
+        // Definição dos formulários
         const formDefinitions = {
-            ig: {
-                title: 'Marketing: Instagram', icon: 'instagram',
-                fields: [
-                    { id: 'ig_cpm', label: 'CPM (Custo por Mil Impressões)' },
-                    { id: 'ig_er', label: 'ER (Engajamento em %)' },
-                    { id: 'ig_ctr', label: 'CTR (Taxa de Cliques em %)' },
-                    { id: 'ig_alc', label: 'ALC (Alcance Absoluto)' },
-                    { id: 'ig_iec', label: 'IEC (Índice Eficiência Cobertura)' },
-                    { id: 'ig_cps', label: 'CPS (Custo por Seguidor R$)' }
-                ]
-            },
-            li: {
-                title: 'Marketing: LinkedIn', icon: 'linkedin',
-                fields: [
-                    { id: 'li_cpc', label: 'CPC (Custo por Clique)' },
-                    { id: 'li_cpm', label: 'CPM (Custo por Mil Impressões)' },
-                    { id: 'li_foll', label: 'Novos Seguidores' },
-                    { id: 'li_er', label: 'ER (Engajamento em %)' }
-                ]
-            },
-            yt: {
-                title: 'Marketing: YouTube', icon: 'youtube',
-                fields: [
-                    { id: 'yt_pmv', label: 'PMV (Retenção de Vídeo em %)' },
-                    { id: 'yt_vvr', label: 'VVR (Total Visualizações)' },
-                    { id: 'yt_subs', label: 'Inscrições' },
-                    { id: 'yt_imp', label: 'Impressões' }
-                ]
-            },
-            tk: {
-                title: 'Marketing: TikTok', icon: 'smartphone',
-                fields: [
-                    { id: 'tk_tv', label: 'TV (Total Visualizações)' },
-                    { id: 'tk_er', label: 'ER (Engajamento em %)' },
-                    { id: 'tk_share', label: 'Compartilhamentos' },
-                    { id: 'tk_cpv', label: 'CPV (Custo por View R$)' }
-                ]
-            },
-            jor: {
-                title: 'Jornalismo', icon: 'file-text',
-                fields: [
-                    { id: 'jor_mat', label: 'Quantidade de Matérias Publicadas' },
-                    { id: 'jor_views', label: 'Visualizações por Matéria' },
-                    { id: 'jor_ret', label: 'Taxa de Retenção de Leitura (%)' }
-                ]
-            },
-            evt: {
-                title: 'Promoção de Eventos', icon: 'calendar-days',
-                fields: [
-                    { id: 'evt_exec', label: 'Taxa de Execução' },
-                    { id: 'evt_sat', label: 'Satisfação Geral (%)' },
-                    { id: 'evt_real', label: 'Eventos Realizados' },
-                    { id: 'evt_plan', label: 'Eventos Planejados' },
-                    { id: 'evt_part', label: 'Taxa de Participação (Total Pessoas)' }
-                ]
-            },
-            soc: {
-                title: 'Socioambiental', icon: 'recycle',
-                fields: [
-                    { id: 'soc_res', label: 'Resíduos Reciclados (kg)' },
-                    { id: 'soc_colab', label: 'Colaboradores Capacitados' },
-                    { id: 'soc_cap', label: 'Capacitação Comunidade' },
-                    { id: 'soc_proj', label: 'N° de Projetos Atendidos' }
-                ]
-            },
-            glb: {
-                title: 'Dados Globais Institucionais', icon: 'globe',
-                fields: [
-                    { id: 'g_alc', label: 'Alcance Total Institucional' },
-                    { id: 'g_cpm', label: 'CPM Médio Global' },
-                    { id: 'g_views', label: 'Visualizações Globais' },
-                    { id: 'g_evt', label: 'Total Eventos Institucionais' }
-                ]
-            }
+            ig: { title: 'Marketing: Instagram', icon: 'instagram', fields: [{ id: 'ig_cpm', label: 'CPM (Custo por Mil Impressões)' }, { id: 'ig_er', label: 'ER (Engajamento em %)' }, { id: 'ig_ctr', label: 'CTR (Taxa de Cliques em %)' }, { id: 'ig_alc', label: 'ALC (Alcance Absoluto)' }, { id: 'ig_iec', label: 'IEC (Índice Eficiência Cobertura)' }, { id: 'ig_cps', label: 'CPS (Custo por Seguidor R$)' }] },
+            li: { title: 'Marketing: LinkedIn', icon: 'linkedin', fields: [{ id: 'li_cpc', label: 'CPC (Custo por Clique)' }, { id: 'li_cpm', label: 'CPM (Custo por Mil Impressões)' }, { id: 'li_foll', label: 'Novos Seguidores' }, { id: 'li_er', label: 'ER (Engajamento em %)' }] },
+            yt: { title: 'Marketing: YouTube', icon: 'youtube', fields: [{ id: 'yt_pmv', label: 'PMV (Retenção de Vídeo em %)' }, { id: 'yt_vvr', label: 'VVR (Total Visualizações)' }, { id: 'yt_subs', label: 'Inscrições' }, { id: 'yt_imp', label: 'Impressões' }] },
+            tk: { title: 'Marketing: TikTok', icon: 'smartphone', fields: [{ id: 'tk_tv', label: 'TV (Total Visualizações)' }, { id: 'tk_er', label: 'ER (Engajamento em %)' }, { id: 'tk_share', label: 'Compartilhamentos' }, { id: 'tk_cpv', label: 'CPV (Custo por View R$)' }] },
+            jor: { title: 'Jornalismo', icon: 'file-text', fields: [{ id: 'jor_mat', label: 'Quantidade de Matérias Publicadas' }, { id: 'jor_views', label: 'Visualizações por Matéria' }, { id: 'jor_ret', label: 'Taxa de Retenção de Leitura (%)' }] },
+            evt: { title: 'Promoção de Eventos', icon: 'calendar-days', fields: [{ id: 'evt_exec', label: 'Taxa de Execução' }, { id: 'evt_sat', label: 'Satisfação Geral (%)' }, { id: 'evt_real', label: 'Eventos Realizados' }, { id: 'evt_plan', label: 'Eventos Planejados' }, { id: 'evt_part', label: 'Taxa de Participação (Total Pessoas)' }] },
+            soc: { title: 'Socioambiental', icon: 'recycle', fields: [{ id: 'soc_res', label: 'Resíduos Reciclados (kg)' }, { id: 'soc_colab', label: 'Colaboradores Capacitados' }, { id: 'soc_cap', label: 'Capacitação Comunidade' }, { id: 'soc_proj', label: 'N° de Projetos Atendidos' }] },
+            glb: { title: 'Dados Globais Institucionais', icon: 'globe', fields: [{ id: 'g_alc', label: 'Alcance Total Institucional' }, { id: 'g_cpm', label: 'CPM Médio Global' }, { id: 'g_views', label: 'Visualizações Globais' }, { id: 'g_evt', label: 'Total Eventos Institucionais' }] }
         };
 
-        // Fallback Inicial Limpo
         const fallbackMonthlyData = monthsInfo.map(m => ({
             month: m.m, quarter: m.q, timestamp: m.t,
             g_alc:0, g_cpm:0, g_views:0, g_evt:0,
@@ -233,7 +159,6 @@
             evt_exec:0, evt_sat:0, evt_real:0, evt_plan:0, evt_part:0
         }));
 
-        // Formatadores
         const formatNumber = (num) => new Intl.NumberFormat('pt-BR', { notation: "compact", compactDisplay: "short" }).format(num || 0);
         const formatCurrency = (num) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(num || 0);
         const formatPercent = (num) => `${Number(num || 0).toFixed(2).replace('.', ',')}%`;
@@ -244,62 +169,59 @@
             return formatNumber(val);
         };
 
-        // ==========================================
-        // DICIONÁRIO DE KPIs, METAS E REGRAS (Crucial para o Motor de Farol)
-        // ==========================================
-        // InverseLogic: TRUE = Quanto Menor, Melhor (Ex: Custo). FALSE = Quanto Maior, Melhor (Ex: Alcance)
+        // Adicionado "agg": tipo de agregação (avg para médias/taxas, sum para totais absolutos)
         const kpiDataByArea = {
             global: [
-                { id: 'g1', title: "Alcance Total Institucional", iconName: "users", dataKey: "g_alc", chartType: "area", format: "number", numericTarget: 1400000, inverseLogic: false },
-                { id: 'g2', title: "CPM Médio Global", iconName: "target", dataKey: "g_cpm", chartType: "line", format: "currency", numericTarget: 4.00, inverseLogic: true },
-                { id: 'g3', title: "Visualizações Globais", iconName: "layout-dashboard", dataKey: "g_views", chartType: "bar", format: "number", numericTarget: 3000, inverseLogic: false },
-                { id: 'g4', title: "Eventos Institucionais", iconName: "calendar-days", dataKey: "g_evt", chartType: "bar", format: "number", numericTarget: 35, inverseLogic: false },
+                { id: 'g1', title: "Alcance Total", iconName: "users", dataKey: "g_alc", chartType: "area", format: "number", numericTarget: 1400000, inverseLogic: false, agg: 'sum' },
+                { id: 'g2', title: "CPM Médio Global", iconName: "target", dataKey: "g_cpm", chartType: "line", format: "currency", numericTarget: 4.00, inverseLogic: true, agg: 'avg' },
+                { id: 'g3', title: "Visualizações", iconName: "layout-dashboard", dataKey: "g_views", chartType: "bar", format: "number", numericTarget: 3000, inverseLogic: false, agg: 'sum' },
+                { id: 'g4', title: "Eventos Institucionais", iconName: "calendar-days", dataKey: "g_evt", chartType: "bar", format: "number", numericTarget: 35, inverseLogic: false, agg: 'sum' },
             ],
             mkt: {
                 instagram: [
-                    { id: 'i1', title: "CPM", iconName: "target", dataKey: "ig_cpm", chartType: "line", format: "currency", numericTarget: 8.00, inverseLogic: true },
-                    { id: 'i2', title: "ER (Engajamento)", iconName: "activity", dataKey: "ig_er", chartType: "bar", format: "percent", numericTarget: 2.0, inverseLogic: false },
-                    { id: 'i3', title: "CTR (Taxa de Cliques)", iconName: "mouse-pointer-click", dataKey: "ig_ctr", chartType: "line", format: "percent", numericTarget: 1.88, inverseLogic: false },
-                    { id: 'i4', title: "ALC (Alcance)", iconName: "users", dataKey: "ig_alc", chartType: "area", format: "number", numericTarget: 700000, inverseLogic: false },
-                    { id: 'i5', title: "IEC (Índice Cobertura)", iconName: "activity", dataKey: "ig_iec", chartType: "bar", format: "number", numericTarget: 6250, inverseLogic: false },
-                    { id: 'i6', title: "CPS (Custo/Seguidor)", iconName: "users", dataKey: "ig_cps", chartType: "line", format: "currency", numericTarget: 4.00, inverseLogic: true },
+                    { id: 'i1', title: "CPM", iconName: "target", dataKey: "ig_cpm", chartType: "line", format: "currency", numericTarget: 8.00, inverseLogic: true, agg: 'avg' },
+                    { id: 'i2', title: "ER (Engajamento)", iconName: "activity", dataKey: "ig_er", chartType: "bar", format: "percent", numericTarget: 2.0, inverseLogic: false, agg: 'avg' },
+                    { id: 'i3', title: "CTR (Taxa de Cliques)", iconName: "mouse-pointer-click", dataKey: "ig_ctr", chartType: "line", format: "percent", numericTarget: 1.88, inverseLogic: false, agg: 'avg' },
+                    { id: 'i4', title: "ALC (Alcance)", iconName: "users", dataKey: "ig_alc", chartType: "area", format: "number", numericTarget: 700000, inverseLogic: false, agg: 'sum' },
+                    { id: 'i5', title: "IEC (Índice Cobertura)", iconName: "activity", dataKey: "ig_iec", chartType: "bar", format: "number", numericTarget: 6250, inverseLogic: false, agg: 'avg' },
+                    { id: 'i6', title: "CPS (Custo/Seguidor)", iconName: "users", dataKey: "ig_cps", chartType: "line", format: "currency", numericTarget: 4.00, inverseLogic: true, agg: 'avg' },
                 ],
                 linkedin: [
-                    { id: 'l1', title: "CPC", iconName: "mouse-pointer-click", dataKey: "li_cpc", chartType: "line", format: "currency", numericTarget: 40.00, inverseLogic: true },
-                    { id: 'l2', title: "CPM", iconName: "target", dataKey: "li_cpm", chartType: "line", format: "currency", numericTarget: 15.00, inverseLogic: true },
-                    { id: 'l3', title: "Novos Seguidores", iconName: "users", dataKey: "li_foll", chartType: "area", format: "number", numericTarget: 500, inverseLogic: false },
-                    { id: 'l4', title: "ER (Engajamento)", iconName: "activity", dataKey: "li_er", chartType: "bar", format: "percent", numericTarget: 3.0, inverseLogic: false },
+                    { id: 'l1', title: "CPC", iconName: "mouse-pointer-click", dataKey: "li_cpc", chartType: "line", format: "currency", numericTarget: 40.00, inverseLogic: true, agg: 'avg' },
+                    { id: 'l2', title: "CPM", iconName: "target", dataKey: "li_cpm", chartType: "line", format: "currency", numericTarget: 15.00, inverseLogic: true, agg: 'avg' },
+                    { id: 'l3', title: "Novos Seguidores", iconName: "users", dataKey: "li_foll", chartType: "area", format: "number", numericTarget: 500, inverseLogic: false, agg: 'sum' },
+                    { id: 'l4', title: "ER (Engajamento)", iconName: "activity", dataKey: "li_er", chartType: "bar", format: "percent", numericTarget: 3.0, inverseLogic: false, agg: 'avg' },
                 ],
                 youtube: [
-                    { id: 'y1', title: "PMV (Retenção)", iconName: "clock", dataKey: "yt_pmv", chartType: "area", format: "percent", numericTarget: 50.0, inverseLogic: false },
-                    { id: 'y2', title: "VVR (Visualizações)", iconName: "youtube", dataKey: "yt_vvr", chartType: "bar", format: "number", numericTarget: 10000, inverseLogic: false },
-                    { id: 'y3', title: "Inscrições", iconName: "users", dataKey: "yt_subs", chartType: "line", format: "number", numericTarget: 200, inverseLogic: false },
-                    { id: 'y4', title: "Impressões", iconName: "target", dataKey: "yt_imp", chartType: "area", format: "number", numericTarget: 100000, inverseLogic: false },
+                    { id: 'y1', title: "PMV (Retenção)", iconName: "clock", dataKey: "yt_pmv", chartType: "area", format: "percent", numericTarget: 50.0, inverseLogic: false, agg: 'avg' },
+                    { id: 'y2', title: "VVR (Visualizações)", iconName: "youtube", dataKey: "yt_vvr", chartType: "bar", format: "number", numericTarget: 10000, inverseLogic: false, agg: 'sum' },
+                    { id: 'y3', title: "Inscrições", iconName: "users", dataKey: "yt_subs", chartType: "line", format: "number", numericTarget: 200, inverseLogic: false, agg: 'sum' },
+                    { id: 'y4', title: "Impressões", iconName: "target", dataKey: "yt_imp", chartType: "area", format: "number", numericTarget: 100000, inverseLogic: false, agg: 'sum' },
                 ],
                 tiktok: [
-                    { id: 't1', title: "TV (Visuais Totais)", iconName: "smartphone", dataKey: "tk_tv", chartType: "bar", format: "number", numericTarget: 30000, inverseLogic: false },
-                    { id: 't2', title: "ER (Engajamento)", iconName: "activity", dataKey: "tk_er", chartType: "line", format: "percent", numericTarget: 5.0, inverseLogic: false },
-                    { id: 't3', title: "Compartilhamentos", iconName: "file-text", dataKey: "tk_share", chartType: "area", format: "number", numericTarget: 500, inverseLogic: false },
-                    { id: 't4', title: "CPV (Custo por View)", iconName: "target", dataKey: "tk_cpv", chartType: "line", format: "currency", numericTarget: 0.05, inverseLogic: true },
+                    { id: 't1', title: "TV (Visuais Totais)", iconName: "smartphone", dataKey: "tk_tv", chartType: "bar", format: "number", numericTarget: 30000, inverseLogic: false, agg: 'sum' },
+                    { id: 't2', title: "ER (Engajamento)", iconName: "activity", dataKey: "tk_er", chartType: "line", format: "percent", numericTarget: 5.0, inverseLogic: false, agg: 'avg' },
+                    { id: 't3', title: "Compartilhamentos", iconName: "file-text", dataKey: "tk_share", chartType: "area", format: "number", numericTarget: 500, inverseLogic: false, agg: 'sum' },
+                    { id: 't4', title: "CPV (Custo por View)", iconName: "target", dataKey: "tk_cpv", chartType: "line", format: "currency", numericTarget: 0.05, inverseLogic: true, agg: 'avg' },
                 ]
             },
             jor: [
-                { id: 'j1', title: "Matérias Publicadas", iconName: "file-text", dataKey: "jor_mat", chartType: "bar", format: "number", numericTarget: 2, inverseLogic: false },
-                { id: 'j2', title: "Vis. por Matéria", iconName: "users", dataKey: "jor_views", chartType: "area", format: "number", numericTarget: 100, inverseLogic: false },
-                { id: 'j3', title: "Retenção de Leitura", iconName: "clock", dataKey: "jor_ret", chartType: "line", format: "percent", numericTarget: 40.0, inverseLogic: false }
+                { id: 'j1', title: "Matérias Publicadas", iconName: "file-text", dataKey: "jor_mat", chartType: "bar", format: "number", numericTarget: 2, inverseLogic: false, agg: 'sum' },
+                { id: 'j2', title: "Vis. por Matéria", iconName: "users", dataKey: "jor_views", chartType: "area", format: "number", numericTarget: 100, inverseLogic: false, agg: 'avg' },
+                { id: 'j3', title: "Retenção de Leitura", iconName: "clock", dataKey: "jor_ret", chartType: "line", format: "percent", numericTarget: 40.0, inverseLogic: false, agg: 'avg' }
             ],
             soc: [
-                { id: 's1', title: "Resíduos Reciclados (kg)", iconName: "recycle", dataKey: "soc_res", chartType: "area", format: "number", numericTarget: 200, inverseLogic: false },
-                { id: 's2', title: "Colab. Capacitados", iconName: "users", dataKey: "soc_colab", chartType: "bar", format: "number", numericTarget: 70, inverseLogic: false },
-                { id: 's3', title: "Capacitação Comunidade", iconName: "graduation-cap", dataKey: "soc_cap", chartType: "line", format: "number", numericTarget: 150, inverseLogic: false },
-                { id: 's4', title: "Projetos Atendidos", iconName: "folder-heart", dataKey: "soc_proj", chartType: "bar", format: "number", numericTarget: 2, inverseLogic: false },
+                { id: 's1', title: "Resíduos Reciclados", iconName: "recycle", dataKey: "soc_res", chartType: "area", format: "number", numericTarget: 200, inverseLogic: false, agg: 'sum' },
+                { id: 's2', title: "Colab. Capacitados", iconName: "users", dataKey: "soc_colab", chartType: "bar", format: "number", numericTarget: 70, inverseLogic: false, agg: 'sum' },
+                { id: 's3', title: "Capacitação Comunidade", iconName: "graduation-cap", dataKey: "soc_cap", chartType: "line", format: "number", numericTarget: 150, inverseLogic: false, agg: 'sum' },
+                { id: 's4', title: "Projetos Atendidos", iconName: "folder-heart", dataKey: "soc_proj", chartType: "bar", format: "number", numericTarget: 2, inverseLogic: false, agg: 'sum' },
             ],
             evt: [
-                { id: 'e1', title: "Taxa de Execução", iconName: "bar-chart-2", dataKey: "evt_exec", chartType: "line", format: "number", numericTarget: 36, inverseLogic: false },
-                { id: 'e2', title: "Satisfação Geral", iconName: "smile", dataKey: "evt_sat", chartType: "area", format: "percent", numericTarget: 85.0, inverseLogic: false },
-                { id: 'e3', title: "Eventos Realizados", iconName: "calendar-days", dataKey: "evt_real", chartType: "bar", format: "number", numericTarget: 35, inverseLogic: false },
-                { id: 'e4', title: "Eventos Planejados", iconName: "calendar-clock", dataKey: "evt_plan", chartType: "bar", format: "number", numericTarget: 35, inverseLogic: false },
-                { id: 'e5', title: "Taxa de Participação", iconName: "users", dataKey: "evt_part", chartType: "line", format: "number", numericTarget: 600, inverseLogic: false },
+                { id: 'e1', title: "Taxa de Execução", iconName: "bar-chart-2", dataKey: "evt_exec", chartType: "line", format: "number", numericTarget: 36, inverseLogic: false, agg: 'avg' },
+                { id: 'e2', title: "Satisfação Geral", iconName: "smile", dataKey: "evt_sat", chartType: "area", format: "percent", numericTarget: 85.0, inverseLogic: false, agg: 'avg' },
+                { id: 'e3', title: "Eventos Realizados", iconName: "calendar-days", dataKey: "evt_real", chartType: "bar", format: "number", numericTarget: 35, inverseLogic: false, agg: 'sum' },
+                { id: 'e4', title: "Eventos Planejados", iconName: "calendar-clock", dataKey: "evt_plan", chartType: "bar", format: "number", numericTarget: 35, inverseLogic: false, agg: 'sum' },
+                { id: 'e5', title: "Taxa de Participação", iconName: "users", dataKey: "evt_part", chartType: "line", format: "number", numericTarget: 600, inverseLogic: false, agg: 'avg' },
             ]
         };
 
@@ -311,88 +233,78 @@
             { id: 'evt', name: 'Eventos' },
         ];
 
-        // ==========================================
-        // MOTOR DE CÁLCULO DE DESEMPENHO (FAROL)
-        // ==========================================
-        function calculatePerformance(value, target, inverseLogic) {
-            if (value === undefined || value === null || isNaN(value)) {
-                return { status: 'slate', trend: '-', isPositive: true };
-            }
-            
-            let status = 'yellow';
-            let isPositive = true;
-            let diffPercent = 0;
-            
-            if (target > 0) {
-                diffPercent = ((value - target) / target) * 100;
-            } else if (target === 0 && value > 0) {
-                diffPercent = 100; // Crescimento infinito se o target for 0
-            }
-            
-            let trendStr = diffPercent > 0 ? `+${diffPercent.toFixed(1)}%` : `${diffPercent.toFixed(1)}%`;
-            if (value === target) trendStr = '0.0%';
-
-            if (inverseLogic) {
-                // Lógica Reversa (Menor custo é melhor)
-                isPositive = value <= target;
-                if (value <= target) status = 'green';
-                else if (value <= target * 1.15) status = 'yellow'; // Margem de 15% de tolerância
-                else status = 'red';
-            } else {
-                // Lógica Normal (Maior alcance é melhor)
-                isPositive = value >= target;
-                if (value >= target) status = 'green';
-                else if (value >= target * 0.85) status = 'yellow'; // Margem de 15% de tolerância
-                else status = 'red';
-            }
-
-            return { status, trend: trendStr, isPositive };
+        // LÓGICAS DE CÁLCULO ATUALIZADAS (Média/Soma e % de Atingimento c/ Farol)
+        function getAggregatedValue(dataArray, dataKey, aggType) {
+            if (!dataArray || dataArray.length === 0) return 0;
+            let sum = 0;
+            let count = 0;
+            dataArray.forEach(d => {
+                const val = parseFloat(d[dataKey] || 0);
+                if (val > 0) { // Considerar apenas meses com dados inseridos
+                    sum += val;
+                    count++;
+                }
+            });
+            if (count === 0) return 0;
+            return aggType === 'avg' ? sum / count : sum;
         }
 
+        function calculateAchievement(value, target, inverseLogic) {
+            if (!target || target === 0) return { percent: 0, status: 'slate', label: 'SEM META' };
+            
+            let percent = 0;
+            if (inverseLogic) {
+                // Ex: CPM. Meta 8,00, Valor 4,00 = (8/4)*100 = 200% de Atingimento
+                percent = value === 0 ? 0 : (target / value) * 100;
+            } else {
+                // Ex: ER. Meta 2%, Valor 14% = (14/2)*100 = 700% de Atingimento
+                percent = (value / target) * 100;
+            }
 
-        // ==========================================
-        // LÓGICA DE AUTENTICAÇÃO
-        // ==========================================
+            let status = 'red';
+            let label = 'CRÍTICO';
+            
+            if (percent >= 100) {
+                status = 'green';
+                label = 'NO ALVO';
+            } else if (percent >= 80) {
+                status = 'yellow';
+                label = 'ATENÇÃO';
+            }
+
+            return { percent, status, label };
+        }
+
+        // AUTENTICAÇÃO
         const loginScreen = document.getElementById('login-screen');
         const appScreen = document.getElementById('app-screen');
         const loginError = document.getElementById('login-error');
-
-        function showLoginError(msg) {
-            loginError.innerText = msg;
-            loginError.classList.remove('hidden');
-        }
 
         document.getElementById('btn-login').addEventListener('click', async () => {
             try {
                 const provider = new GoogleAuthProvider();
                 provider.setCustomParameters({ hd: "evereste.org.br" });
-                
                 const result = await signInWithPopup(auth, provider);
-                const email = result.user.email;
-                
-                if (!email.endsWith('@evereste.org.br')) {
+                if (!result.user.email.endsWith('@evereste.org.br')) {
                     await signOut(auth);
-                    showLoginError("Acesso negado. Utilize uma conta corporativa com final @evereste.org.br.");
+                    loginError.innerText = "Acesso negado. Utilize uma conta corporativa @evereste.org.br.";
+                    loginError.classList.remove('hidden');
                 }
             } catch (error) {
-                console.error(error);
-                showLoginError("Falha na autenticação: Verifique se o Login via Google está ativado no Firebase Console (" + error.message + ")");
+                loginError.innerText = "Falha na autenticação.";
+                loginError.classList.remove('hidden');
             }
         });
 
-        document.getElementById('btn-logout').addEventListener('click', () => {
-            signOut(auth);
-        });
+        document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
 
         onAuthStateChanged(auth, (user) => {
             if (user && user.email.endsWith('@evereste.org.br')) {
                 state.user = user;
                 loginScreen.classList.add('hidden');
                 appScreen.classList.remove('hidden');
-                
                 document.getElementById('user-name').innerText = user.displayName || user.email;
                 document.getElementById('user-avatar').src = user.photoURL || '';
-                
                 initFirestore();
             } else {
                 state.user = null;
@@ -401,9 +313,6 @@
             }
         });
 
-        // ==========================================
-        // BANCO DE DADOS E SINCRONIZAÇÃO
-        // ==========================================
         function setDbStatus(msg, statusType = 'normal') {
             document.getElementById('db-status-text').innerText = msg;
             const icon = document.getElementById('db-status-icon');
@@ -420,13 +329,9 @@
             onSnapshot(q, (snapshot) => {
                 const data = snapshot.docs.map(doc => doc.data());
                 data.sort((a, b) => a.timestamp - b.timestamp);
-                
                 state.firebaseData = data;
-                if(data.length > 0) {
-                    setDbStatus('Sincronizado via Firebase', 'success');
-                } else {
-                    setDbStatus('Banco vazio. Vá em Inserir Dados.', 'warning');
-                }
+                if(data.length > 0) setDbStatus('Sincronizado via Firebase', 'success');
+                else setDbStatus('Banco vazio. Vá em Inserir Dados.', 'warning');
                 renderApp();
             }, (err) => {
                 console.error(err);
@@ -436,7 +341,7 @@
 
         function getActiveData() {
             const data = state.firebaseData.length > 0 ? state.firebaseData : fallbackMonthlyData;
-            if (state.timeRange === 'YTD') return data;
+            if (state.timeRange === 'YTD' || state.isComparativeMode) return data;
             return data.filter(d => d.quarter === state.timeRange);
         }
 
@@ -458,10 +363,13 @@
                 document.getElementById('header-title').innerText = 'Painel de Desempenho';
                 mainContent.innerHTML = buildDashboardHTML();
                 
-                document.getElementById('time-filter').addEventListener('change', (e) => {
-                    state.timeRange = e.target.value; renderApp();
-                });
+                document.getElementById('time-filter').addEventListener('change', (e) => { state.timeRange = e.target.value; renderApp(); });
                 
+                const toggleComp = document.getElementById('toggle-comparative');
+                if (toggleComp) {
+                    toggleComp.addEventListener('change', (e) => { state.isComparativeMode = e.target.checked; renderApp(); });
+                }
+
                 document.querySelectorAll('.area-btn').forEach(btn => {
                     btn.addEventListener('click', (e) => {
                         state.selectedArea = e.target.dataset.area;
@@ -472,8 +380,7 @@
 
                 document.querySelectorAll('.network-btn').forEach(btn => {
                     btn.addEventListener('click', (e) => {
-                        const target = e.target.closest('button');
-                        state.selectedNetwork = target.dataset.network;
+                        state.selectedNetwork = e.target.closest('button').dataset.network;
                         renderApp();
                     });
                 });
@@ -489,55 +396,32 @@
 
         function renderSidebar() {
             const nav = document.getElementById('nav-menu');
-            const items = [
-                { id: 'dashboard', icon: 'layout-dashboard', label: 'Dashboard Central' },
-                { id: 'data', icon: 'edit-3', label: 'Inserir Dados' }
-            ];
-            
+            const items = [{ id: 'dashboard', icon: 'layout-dashboard', label: 'Dashboard Central' }, { id: 'data', icon: 'edit-3', label: 'Inserir Dados' }];
             nav.innerHTML = items.map(item => `
                 <button data-tab="${item.id}" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${state.activeTab === item.id ? 'bg-indigo-500/10 text-indigo-400 font-semibold' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 font-medium'}">
-                    <i data-lucide="${item.icon}" class="w-4 h-4"></i>
-                    <span class="text-sm">${item.label}</span>
+                    <i data-lucide="${item.icon}" class="w-4 h-4"></i><span class="text-sm">${item.label}</span>
                 </button>
             `).join('');
 
             document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    state.activeTab = e.target.closest('button').dataset.tab;
-                    renderApp();
-                });
+                btn.addEventListener('click', (e) => { state.activeTab = e.target.closest('button').dataset.tab; renderApp(); });
             });
         }
 
-        // ==========================================
-        // TELA DE DASHBOARD
-        // ==========================================
         function buildDashboardHTML() {
             const activeData = getActiveData();
             const currentKPIs = getCurrentKPIs();
-            
-            // Pega sempre o último mês que tiver algum dado inserido
-            const lastData = activeData.length > 0 ? activeData[activeData.length-1] : fallbackMonthlyData[0];
 
             const areaFiltersHTML = areasList.map(area => `
-                <button data-area="${area.id}" class="area-btn px-4 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${state.selectedArea === area.id ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'}">
-                    ${area.name}
-                </button>
+                <button data-area="${area.id}" class="area-btn px-4 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${state.selectedArea === area.id ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'}">${area.name}</button>
             `).join('');
 
             let subFilterHTML = '';
             if (state.selectedArea === 'mkt') {
-                const networks = [
-                    { id: 'instagram', label: 'Instagram', icon: 'instagram' },
-                    { id: 'linkedin', label: 'LinkedIn', icon: 'linkedin' },
-                    { id: 'youtube', label: 'YouTube', icon: 'youtube' },
-                    { id: 'tiktok', label: 'TikTok', icon: 'smartphone' }
-                ];
+                const networks = [{ id: 'instagram', label: 'Instagram', icon: 'instagram' }, { id: 'linkedin', label: 'LinkedIn', icon: 'linkedin' }, { id: 'youtube', label: 'YouTube', icon: 'youtube' }, { id: 'tiktok', label: 'TikTok', icon: 'smartphone' }];
                 subFilterHTML = `
                 <div class="flex items-center gap-3 mt-4 mb-2 fade-in">
-                    <div class="text-sm font-semibold text-slate-400 flex items-center gap-1">
-                        Rede Social <i data-lucide="chevron-right" class="w-4 h-4"></i>
-                    </div>
+                    <div class="text-sm font-semibold text-slate-400 flex items-center gap-1">Rede Social <i data-lucide="chevron-right" class="w-4 h-4"></i></div>
                     <div class="flex bg-white rounded-xl shadow-sm border border-slate-200/60 p-1 flex-wrap">
                         ${networks.map(net => `
                             <button data-network="${net.id}" class="network-btn flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${state.selectedNetwork === net.id ? 'bg-indigo-50 text-indigo-700' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'}">
@@ -548,38 +432,56 @@
                 </div>`;
             }
 
+            // Geração dos Cards atualizada com Atingimento e Farol
             const kpisHTML = currentKPIs.map(kpi => {
-                const rawValue = lastData[kpi.dataKey];
-                const val = rawValue !== undefined ? formatValue(rawValue, kpi.format) : formatValue(0, kpi.format);
+                const aggValue = getAggregatedValue(activeData, kpi.dataKey, kpi.agg);
+                const valFormatted = formatValue(aggValue, kpi.format);
                 const targetFormatted = formatValue(kpi.numericTarget, kpi.format);
                 
-                // Análise automática da Cor e Tendência do KPI!
-                const perf = calculatePerformance(rawValue, kpi.numericTarget, kpi.inverseLogic);
+                const achv = calculateAchievement(aggValue, kpi.numericTarget, kpi.inverseLogic);
                 
-                let confBg = 'bg-slate-50 text-slate-500 border-slate-200';
-                if (perf.status === 'green') confBg = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-                if (perf.status === 'red') confBg = 'bg-red-50 text-red-700 border-red-200';
-                if (perf.status === 'yellow') confBg = 'bg-amber-50 text-amber-700 border-amber-200';
+                let farolColor = 'bg-slate-200 text-slate-500';
+                let farolBg = 'bg-slate-50';
+                let iconStatus = 'circle';
                 
-                const trendColor = perf.isPositive ? 'text-emerald-600' : 'text-red-600';
-                const trendBg = perf.isPositive ? 'bg-emerald-50' : 'bg-red-50';
-                const trendIcon = perf.isPositive ? 'trending-up' : 'trending-down';
+                if (achv.status === 'green') { farolColor = 'text-emerald-500'; farolBg = 'bg-emerald-50 border-emerald-200'; iconStatus = 'check-circle-2'; }
+                if (achv.status === 'red') { farolColor = 'text-red-500'; farolBg = 'bg-red-50 border-red-200'; iconStatus = 'x-circle'; }
+                if (achv.status === 'yellow') { farolColor = 'text-amber-500'; farolBg = 'bg-amber-50 border-amber-200'; iconStatus = 'alert-circle'; }
 
                 return `
-                <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200/60 relative overflow-hidden transition-all duration-300 hover:shadow-md">
-                    <div class="flex justify-between items-start mb-4">
-                        <div class="p-2.5 rounded-2xl ${confBg} border">
-                            <i data-lucide="${kpi.iconName}" class="w-5 h-5"></i>
-                        </div>
-                    </div>
+                <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200/60 relative overflow-hidden transition-all duration-300 hover:shadow-md flex flex-col justify-between h-full">
                     <div>
-                        <h4 class="text-[12px] font-semibold text-slate-500 mb-1 leading-tight">${kpi.title}</h4>
-                        <h2 class="text-2xl font-black text-slate-800 tracking-tight">${val}</h2>
-                        <div class="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                            <div class="flex items-center gap-1 px-1.5 py-0.5 rounded-md ${trendBg} ${trendColor}">
-                                <i data-lucide="${trendIcon}" class="w-3 h-3"></i> <span class="font-bold">${perf.trend}</span>
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="flex items-center gap-2">
+                                <div class="p-2 rounded-xl bg-slate-50 border border-slate-100 text-slate-500">
+                                    <i data-lucide="${kpi.iconName}" class="w-4 h-4"></i>
+                                </div>
+                                <h4 class="text-[12px] font-bold text-slate-500 leading-tight uppercase tracking-wide">${kpi.title}</h4>
                             </div>
-                            <span class="text-slate-400 font-medium truncate ml-2" title="Meta Estratégica: ${targetFormatted}">Meta: ${targetFormatted}</span>
+                            
+                            <!-- FAROL UI -->
+                            <div class="flex items-center gap-1.5 px-2 py-1 rounded-md ${farolBg} border">
+                                <i data-lucide="${iconStatus}" class="w-3.5 h-3.5 pattern-diagonal rounded-full ${farolColor}"></i>
+                                <span class="text-[10px] font-bold ${farolColor} uppercase tracking-wider">${achv.label}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <div class="flex items-end gap-2">
+                                <h2 class="text-3xl font-black text-slate-800 tracking-tight leading-none">${valFormatted}</h2>
+                                <span class="text-xs font-semibold text-slate-400 mb-1">Média/Soma</span>
+                            </div>
+                            
+                            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                                <div class="flex flex-col">
+                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Atingimento</span>
+                                    <span class="text-sm font-black ${farolColor}">${achv.percent.toFixed(2).replace('.', ',')}%</span>
+                                </div>
+                                <div class="flex flex-col text-right">
+                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Meta</span>
+                                    <span class="text-sm font-bold text-slate-600">${targetFormatted}</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>`;
@@ -587,9 +489,13 @@
 
             const chartsHTML = currentKPIs.map(kpi => `
                 <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200/60 flex flex-col h-[300px]">
-                    <div class="mb-4">
-                        <h3 class="text-[15px] font-bold text-slate-800 tracking-tight">${kpi.title}</h3>
-                        <p class="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Análise de Performance</p>
+                    <div class="mb-2 flex justify-between items-center">
+                        <div>
+                            <h3 class="text-[15px] font-bold text-slate-800 tracking-tight">${kpi.title}</h3>
+                            <p class="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">
+                                ${state.isComparativeMode ? 'Comparativo Trimestral' : 'Série Temporal c/ Predição'}
+                            </p>
+                        </div>
                     </div>
                     <div id="chart-${kpi.id}" class="flex-1 w-full"></div>
                 </div>
@@ -602,15 +508,26 @@
                         <div class="flex items-center w-full xl:w-auto overflow-x-auto hide-scrollbar px-2">
                             <div class="flex space-x-1">${areaFiltersHTML}</div>
                         </div>
-                        <div class="flex gap-3 w-full xl:w-auto px-2 pb-2 xl:pb-0">
-                            <div class="relative w-full xl:w-64">
+                        <div class="flex gap-3 w-full xl:w-auto px-2 pb-2 xl:pb-0 items-center">
+                            
+                            <!-- Toggle Modo Comparativo -->
+                            <label class="flex items-center gap-2 cursor-pointer mr-2">
+                                <div class="relative">
+                                    <input type="checkbox" id="toggle-comparative" class="sr-only" ${state.isComparativeMode ? 'checked' : ''}>
+                                    <div class="block bg-slate-200 w-10 h-6 rounded-full transition-colors ${state.isComparativeMode ? 'bg-indigo-500' : ''}"></div>
+                                    <div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${state.isComparativeMode ? 'transform translate-x-4' : ''}"></div>
+                                </div>
+                                <span class="text-xs font-bold text-slate-600 uppercase tracking-wider">Comparar Trimestres</span>
+                            </label>
+
+                            <div class="relative w-full xl:w-56 ${state.isComparativeMode ? 'opacity-50 pointer-events-none' : ''}">
                                 <i data-lucide="calendar" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"></i>
-                                <select id="time-filter" class="w-full bg-slate-50 border border-slate-200 text-slate-700 font-medium text-sm rounded-xl focus:ring-2 focus:ring-indigo-500 block pl-10 p-2.5 outline-none cursor-pointer">
-                                    <option value="Q1" ${state.timeRange==='Q1'?'selected':''}>1º Trimestre (Jan-Mar)</option>
-                                    <option value="Q2" ${state.timeRange==='Q2'?'selected':''}>2º Trimestre (Abr-Jun)</option>
-                                    <option value="Q3" ${state.timeRange==='Q3'?'selected':''}>3º Trimestre (Jul-Set)</option>
-                                    <option value="Q4" ${state.timeRange==='Q4'?'selected':''}>4º Trimestre (Out-Dez)</option>
-                                    <option value="YTD" ${state.timeRange==='YTD'?'selected':''}>Acumulado (YTD)</option>
+                                <select id="time-filter" class="w-full bg-slate-50 border border-slate-200 text-slate-700 font-medium text-sm rounded-xl focus:ring-2 focus:ring-indigo-500 block pl-10 p-2 outline-none cursor-pointer">
+                                    <option value="Q1" ${state.timeRange==='Q1'?'selected':''}>1º Trimestre</option>
+                                    <option value="Q2" ${state.timeRange==='Q2'?'selected':''}>2º Trimestre</option>
+                                    <option value="Q3" ${state.timeRange==='Q3'?'selected':''}>3º Trimestre</option>
+                                    <option value="Q4" ${state.timeRange==='Q4'?'selected':''}>4º Trimestre</option>
+                                    <option value="YTD" ${state.timeRange==='YTD'?'selected':''}>Acumulado YTD</option>
                                 </select>
                             </div>
                         </div>
@@ -625,81 +542,101 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                         ${chartsHTML}
                     </div>
-
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-                        <div class="lg:col-span-2 bg-white p-6 rounded-3xl shadow-sm border border-slate-200/60 flex flex-col h-[350px]">
-                            <div class="mb-2">
-                                <h3 class="text-[15px] font-bold text-slate-800 tracking-tight">Desempenho Comparativo (Trimestre)</h3>
-                                <p class="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Volume vs Engajamento</p>
-                            </div>
-                            <div id="chart-extra-bar" class="flex-1 w-full"></div>
-                        </div>
-                        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200/60 flex flex-col h-[350px]">
-                            <div class="mb-2">
-                                <h3 class="text-[15px] font-bold text-slate-800 tracking-tight">Distribuição de Tráfego</h3>
-                                <p class="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Origem por Canal</p>
-                            </div>
-                            <div id="chart-extra-donut" class="flex-1 w-full flex items-center justify-center pt-4"></div>
-                        </div>
-                    </div>
-
-                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200/60 mt-8 mb-10">
-                        <div class="flex items-center gap-3 mb-6">
-                            <div class="p-2 bg-indigo-50 rounded-lg text-indigo-600"><i data-lucide="check-square" class="w-6 h-6"></i></div>
-                            <div>
-                                <h3 class="text-lg font-bold text-slate-800 tracking-tight">Acompanhamento Institucional (OEs)</h3>
-                                <p class="text-sm text-slate-500">Monitorização dos objetivos fundamentais de consolidação para 2026.</p>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <div class="p-4 rounded-2xl border border-emerald-200 bg-emerald-50 flex items-start gap-3">
-                                <i data-lucide="check-circle-2" class="text-emerald-600 w-5 h-5"></i>
-                                <div><h4 class="text-sm font-bold text-emerald-800">Cumprimento ≥ 80% das metas</h4><p class="text-xs mt-1 text-emerald-600">Progresso atual: 85%</p></div>
-                            </div>
-                            <div class="p-4 rounded-2xl border border-emerald-200 bg-emerald-50 flex items-start gap-3">
-                                <i data-lucide="check-circle-2" class="text-emerald-600 w-5 h-5"></i>
-                                <div><h4 class="text-sm font-bold text-emerald-800">Relatórios Trimestrais</h4><p class="text-xs mt-1 text-emerald-600">Q1 e Q2 validados</p></div>
-                            </div>
-                            <div class="p-4 rounded-2xl border border-emerald-200 bg-emerald-50 flex items-start gap-3">
-                                <i data-lucide="check-circle-2" class="text-emerald-600 w-5 h-5"></i>
-                                <div><h4 class="text-sm font-bold text-emerald-800">Consolidação do Painel</h4><p class="text-xs mt-1 text-emerald-600">Integrado e ativo</p></div>
-                            </div>
-                            <div class="p-4 rounded-2xl border border-amber-200 bg-amber-50 flex items-start gap-3">
-                                <i data-lucide="square" class="text-amber-500 w-5 h-5"></i>
-                                <div><h4 class="text-sm font-bold text-amber-800">Crescimento Alcance (Mín 18%)</h4><p class="text-xs mt-1 text-amber-600">Atual: Em monitorização</p></div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             `;
         }
 
+        // Gera predição simples baseada nos últimos 3 meses
+        function generateForecast(dataArray) {
+            if (dataArray.length < 2) return [];
+            let last3 = dataArray.slice(-3);
+            let diffSum = 0;
+            for(let i = 1; i < last3.length; i++) {
+                diffSum += (last3[i] - last3[i-1]);
+            }
+            let avgStep = diffSum / (last3.length - 1);
+            let lastVal = dataArray[dataArray.length - 1];
+            
+            // Projetar próximos 3 meses
+            return [
+                Math.max(0, lastVal + avgStep),
+                Math.max(0, lastVal + avgStep * 2),
+                Math.max(0, lastVal + avgStep * 3)
+            ];
+        }
+
         function renderCharts() {
             destroyCharts();
-            const data = getActiveData();
+            const fullData = state.firebaseData.length > 0 ? state.firebaseData : fallbackMonthlyData;
+            const activeData = getActiveData();
             const currentKPIs = getCurrentKPIs();
-            const categories = data.map(d => d.month);
 
             currentKPIs.forEach(kpi => {
-                const seriesData = data.map(d => d[kpi.dataKey] || 0);
-                let chartType = kpi.chartType;
-                let colors = ['#4f46e5'];
-                if (chartType === 'line') colors = ['#f59e0b'];
-                if (chartType === 'bar') colors = ['#0ea5e9'];
+                let options = {};
 
-                const options = {
-                    series: [{ name: 'Realizado', data: seriesData }],
-                    chart: { type: chartType, height: '100%', toolbar: { show: false }, parentHeightOffset: 0, fontFamily: 'inherit' },
-                    colors: colors,
-                    fill: { type: chartType === 'area' ? 'gradient' : 'solid', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0, stops: [0, 90, 100] } },
-                    dataLabels: { enabled: false },
-                    stroke: { curve: 'smooth', width: chartType === 'bar' ? 0 : 3 },
-                    xaxis: { categories: categories, axisBorder: { show: false }, axisTicks: { show: false }, labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
-                    yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px' }, formatter: (value) => formatValue(value, kpi.format) } },
-                    grid: { borderColor: '#f1f5f9', strokeDashArray: 4, padding: { top: 0, right: 0, bottom: 0, left: 10 } },
-                    annotations: { yaxis: [{ y: kpi.numericTarget, borderColor: '#94a3b8', strokeDashArray: 4, label: { text: 'Meta', style: { color: '#fff', background: '#94a3b8', fontSize: '10px' } } }] },
-                    tooltip: { y: { formatter: (value) => formatValue(value, kpi.format) } }
-                };
+                if (state.isComparativeMode) {
+                    // MODO COMPARATIVO: Agrupar por Trimestre
+                    const qData = { 'Q1': [], 'Q2': [], 'Q3': [], 'Q4': [] };
+                    fullData.forEach(d => {
+                        if (d[kpi.dataKey] !== undefined) qData[d.quarter].push(d);
+                    });
+
+                    const categories = ['Q1', 'Q2', 'Q3', 'Q4'];
+                    const seriesData = categories.map(q => getAggregatedValue(qData[q], kpi.dataKey, kpi.agg));
+
+                    options = {
+                        series: [{ name: 'Resultado', data: seriesData }],
+                        chart: { type: 'bar', height: '100%', toolbar: { show: false }, fontFamily: 'inherit' },
+                        colors: ['#4f46e5'],
+                        plotOptions: { bar: { borderRadius: 4, columnWidth: '50%' } },
+                        dataLabels: { enabled: false },
+                        xaxis: { categories: categories, axisBorder: { show: false }, axisTicks: { show: false }, labels: { style: { colors: '#94a3b8' } } },
+                        yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px' }, formatter: (value) => formatValue(value, kpi.format) } },
+                        grid: { borderColor: '#f1f5f9', strokeDashArray: 4 },
+                        tooltip: { y: { formatter: (value) => formatValue(value, kpi.format) } }
+                    };
+
+                } else {
+                    // MODO NORMAL (Série Temporal + Predição)
+                    const categories = activeData.map(d => d.month);
+                    let seriesData = activeData.map(d => parseFloat(d[kpi.dataKey] || 0));
+                    
+                    // Adicionar Predição para Visão Global ou YTD
+                    let forecastCount = 0;
+                    if (state.timeRange === 'YTD' || state.selectedArea === 'global') {
+                        const predicted = generateForecast(seriesData);
+                        if (predicted.length > 0) {
+                            seriesData = [...seriesData, ...predicted];
+                            // Adicionar categorias fictícias para predição se necessário
+                            let nextMonths = ['M+1', 'M+2', 'M+3'];
+                            categories.push(...nextMonths);
+                            forecastCount = predicted.length;
+                        }
+                    }
+
+                    let chartType = kpi.chartType;
+                    let colors = ['#0ea5e9'];
+                    if (chartType === 'line') colors = ['#f59e0b'];
+
+                    options = {
+                        series: [{ name: 'Realizado/Predição', data: seriesData }],
+                        chart: { type: chartType === 'bar' ? 'line' : chartType, height: '100%', toolbar: { show: false }, fontFamily: 'inherit' },
+                        colors: colors,
+                        stroke: { 
+                            curve: 'smooth', 
+                            width: 3,
+                            dashArray: forecastCount > 0 ? [0] : [0] // Apexcharts custom dash via css class injection if needed, but standard is easier
+                        },
+                        forecastDataPoints: { count: forecastCount }, // Magia da Predição do ApexCharts
+                        fill: { type: chartType === 'area' ? 'gradient' : 'solid' },
+                        dataLabels: { enabled: false },
+                        xaxis: { categories: categories, axisBorder: { show: false }, axisTicks: { show: false }, labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                        yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px' }, formatter: (value) => formatValue(value, kpi.format) } },
+                        grid: { borderColor: '#f1f5f9', strokeDashArray: 4 },
+                        annotations: { yaxis: [{ y: kpi.numericTarget, borderColor: '#cbd5e1', strokeDashArray: 4, label: { text: 'Meta', style: { color: '#fff', background: '#94a3b8', fontSize: '10px' } } }] },
+                        tooltip: { y: { formatter: (value) => formatValue(value, kpi.format) } }
+                    };
+                }
 
                 const el = document.querySelector(`#chart-${kpi.id}`);
                 if (el) {
@@ -708,72 +645,12 @@
                     state.charts.push(chart);
                 }
             });
-
-            // Gráficos Extras 
-            const extraBarEl = document.querySelector("#chart-extra-bar");
-            if (extraBarEl) {
-                const alcances = data.map(d => d.ig_alc || 0);
-                const engajamentos = data.map(d => d.ig_er || 0);
-
-                const extraBarOptions = {
-                    series: [
-                        { name: 'Alcance IG', data: alcances }, 
-                        { name: 'Engajamento IG (%)', data: engajamentos }
-                    ],
-                    chart: { type: 'bar', height: '100%', toolbar: { show: false }, fontFamily: 'inherit' },
-                    plotOptions: { bar: { horizontal: false, columnWidth: '45%', borderRadius: 4 } },
-                    dataLabels: { enabled: false },
-                    stroke: { show: true, width: 2, colors: ['transparent'] },
-                    xaxis: { categories: categories, labels: { style: { colors: '#94a3b8' } }, axisBorder: { show: false }, axisTicks: { show: false } },
-                    yaxis: { labels: { style: { colors: '#94a3b8' }, formatter: (val) => formatNumber(val) } },
-                    fill: { opacity: 1 },
-                    colors: ['#4f46e5', '#0ea5e9'],
-                    grid: { borderColor: '#f1f5f9', strokeDashArray: 4 },
-                    legend: { position: 'top', horizontalAlign: 'right', fontSize: '12px', markers: { radius: 12 } }
-                };
-                const extraBarChart = new ApexCharts(extraBarEl, extraBarOptions);
-                extraBarChart.render();
-                state.charts.push(extraBarChart);
-            }
-
-            const extraDonutEl = document.querySelector("#chart-extra-donut");
-            if (extraDonutEl) {
-                const last = data[data.length-1] || fallbackMonthlyData[0];
-                const sumIG = last.ig_alc || 10;
-                const sumLI = (last.li_foll * 100) || 5;
-                const sumYT = last.yt_vvr || 2;
-                const sumTK = last.tk_tv || 8;
-
-                const extraDonutOptions = {
-                    series: [sumIG, sumLI, sumYT, sumTK],
-                    labels: ['Instagram', 'LinkedIn', 'YouTube', 'TikTok'],
-                    chart: { type: 'donut', height: '100%', fontFamily: 'inherit' },
-                    colors: ['#ec4899', '#0ea5e9', '#ef4444', '#111827'],
-                    plotOptions: { pie: { donut: { size: '75%', labels: { show: true, name: { show: true, fontSize: '14px', color: '#64748b' }, value: { show: true, fontSize: '24px', fontWeight: 'bold', color: '#1e293b', formatter: (val)=> formatNumber(val) }, total: { show: true, label: 'Tráfego Volume', color: '#64748b', formatter: function (w) { return formatNumber(w.globals.seriesTotals.reduce((a, b) => a + b, 0)) } } } } } },
-                    dataLabels: { enabled: false },
-                    legend: { position: 'bottom', fontSize: '12px', markers: { radius: 12 } },
-                    stroke: { show: true, width: 3, colors: ['#ffffff'] }
-                };
-                const extraDonutChart = new ApexCharts(extraDonutEl, extraDonutOptions);
-                extraDonutChart.render();
-                state.charts.push(extraDonutChart);
-            }
         }
 
-        // ==========================================
-        // TELA DE INSERÇÃO MANUAL DE KPIs
-        // ==========================================
         function buildManualEntryHTML() {
             const def = formDefinitions[state.entryCategory];
-            
-            const monthOptions = monthsInfo.map(m => 
-                `<option value="${m.m}" ${state.entryMonth === m.m ? 'selected' : ''}>${m.m} (${m.q})</option>`
-            ).join('');
-
-            const categoryOptions = Object.keys(formDefinitions).map(k => 
-                `<option value="${k}" ${state.entryCategory === k ? 'selected' : ''}>${formDefinitions[k].title}</option>`
-            ).join('');
-
+            const monthOptions = monthsInfo.map(m => `<option value="${m.m}" ${state.entryMonth === m.m ? 'selected' : ''}>${m.m} (${m.q})</option>`).join('');
+            const categoryOptions = Object.keys(formDefinitions).map(k => `<option value="${k}" ${state.entryCategory === k ? 'selected' : ''}>${formDefinitions[k].title}</option>`).join('');
             const formFields = def.fields.map(f => `
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">${f.label}</label>
@@ -783,58 +660,39 @@
 
             return `
             <div class="max-w-4xl mx-auto space-y-6 fade-in mt-4 mb-10">
-                
                 <div class="bg-white rounded-3xl shadow-sm border border-slate-200/60 p-8 md:p-10 relative overflow-hidden">
                     <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
                     <div class="flex items-center gap-4 mb-2">
-                        <div class="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center shadow-inner">
-                            <i data-lucide="edit-3" class="w-7 h-7"></i>
-                        </div>
-                        <div>
-                            <h2 class="text-2xl font-bold text-slate-800 tracking-tight">Inserção Direta de Dados</h2>
-                            <p class="text-slate-500 text-sm">Insira os resultados exatos dos KPIs conforme as planilhas da sua área.</p>
-                        </div>
+                        <div class="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center shadow-inner"><i data-lucide="edit-3" class="w-7 h-7"></i></div>
+                        <div><h2 class="text-2xl font-bold text-slate-800 tracking-tight">Inserção Direta de Dados</h2><p class="text-slate-500 text-sm">Insira os resultados exatos dos KPIs conforme as planilhas da sua área.</p></div>
                     </div>
                 </div>
-
                 <div class="bg-white rounded-3xl shadow-sm border border-slate-200/60 p-8 md:p-10">
-                    
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 pb-8 border-b border-slate-100">
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-2">Mês de Referência</label>
                             <div class="relative">
                                 <i data-lucide="calendar" class="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-500 w-5 h-5"></i>
-                                <select id="entry-month" class="w-full bg-indigo-50/50 border border-indigo-100 text-indigo-900 font-bold rounded-xl focus:ring-2 focus:ring-indigo-500 block pl-12 p-3.5 outline-none cursor-pointer appearance-none">
-                                    ${monthOptions}
-                                </select>
+                                <select id="entry-month" class="w-full bg-indigo-50/50 border border-indigo-100 text-indigo-900 font-bold rounded-xl focus:ring-2 focus:ring-indigo-500 block pl-12 p-3.5 outline-none cursor-pointer appearance-none">${monthOptions}</select>
                             </div>
                         </div>
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-2">Área para Inserção</label>
                             <div class="relative">
                                 <i data-lucide="layers" class="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-500 w-5 h-5"></i>
-                                <select id="entry-category" class="w-full bg-indigo-50/50 border border-indigo-100 text-indigo-900 font-bold rounded-xl focus:ring-2 focus:ring-indigo-500 block pl-12 p-3.5 outline-none cursor-pointer appearance-none">
-                                    ${categoryOptions}
-                                </select>
+                                <select id="entry-category" class="w-full bg-indigo-50/50 border border-indigo-100 text-indigo-900 font-bold rounded-xl focus:ring-2 focus:ring-indigo-500 block pl-12 p-3.5 outline-none cursor-pointer appearance-none">${categoryOptions}</select>
                             </div>
                         </div>
                     </div>
-
                     <div class="flex items-center gap-3 mb-6">
                         <div class="p-2 bg-slate-100 text-slate-600 rounded-lg"><i data-lucide="${def.icon}" class="w-5 h-5"></i></div>
                         <h3 class="text-lg font-bold text-slate-800">Preenchimento: ${def.title}</h3>
                     </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                        ${formFields}
-                    </div>
-                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">${formFields}</div>
                     <div id="entry-msg-container" class="hidden mb-6 p-4 rounded-xl text-sm font-bold flex items-center gap-2 w-full"></div>
-
                     <div class="flex justify-end pt-6 border-t border-slate-100">
                         <button id="btn-save-entry" class="px-8 py-3.5 bg-slate-900 text-white rounded-xl font-bold hover:bg-indigo-600 shadow-lg shadow-slate-900/20 transition-all flex items-center gap-2">
-                            <i data-lucide="save" class="w-5 h-5"></i>
-                            Salvar Dados da Área
+                            <i data-lucide="save" class="w-5 h-5"></i> Salvar Dados
                         </button>
                     </div>
                 </div>
@@ -842,14 +700,8 @@
         }
 
         function attachManualEntryListeners() {
-            document.getElementById('entry-month').addEventListener('change', (e) => {
-                state.entryMonth = e.target.value;
-                renderApp();
-            });
-            document.getElementById('entry-category').addEventListener('change', (e) => {
-                state.entryCategory = e.target.value;
-                renderApp();
-            });
+            document.getElementById('entry-month').addEventListener('change', (e) => { state.entryMonth = e.target.value; renderApp(); });
+            document.getElementById('entry-category').addEventListener('change', (e) => { state.entryCategory = e.target.value; renderApp(); });
 
             const btnSave = document.getElementById('btn-save-entry');
             const msgContainer = document.getElementById('entry-msg-container');
@@ -857,8 +709,7 @@
             const setMsg = (text, type) => {
                 msgContainer.className = `p-4 rounded-xl text-sm font-bold flex items-center gap-2 mb-4 w-full ${
                     type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-                    type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' :
-                    'bg-blue-50 text-blue-700 border border-blue-200'
+                    type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-blue-50 text-blue-700 border border-blue-200'
                 }`;
                 const iconName = type === 'success' ? 'check-circle-2' : type === 'error' ? 'alert-circle' : 'loader-2';
                 const spinClass = type === 'info' ? 'animate-spin' : '';
@@ -870,35 +721,22 @@
             btnSave.addEventListener('click', async () => {
                 setMsg('Sincronizando com o Banco...', 'info');
                 btnSave.disabled = true;
-
                 try {
                     const def = formDefinitions[state.entryCategory];
                     const rawValues = {};
-                    
                     def.fields.forEach(f => {
                         const val = document.getElementById(`input-${f.id}`).value;
-                        // Aceita ',' ou '.' como separador decimal para evitar erro
                         rawValues[f.id] = val ? parseFloat(val.replace(',', '.')) : 0;
                     });
                     
                     const mInfo = monthsInfo.find(m => m.m === state.entryMonth);
-
-                    const dataToSave = {
-                        ...rawValues,
-                        month: mInfo.m,
-                        quarter: mInfo.q,
-                        timestamp: mInfo.t
-                    };
-
+                    const dataToSave = { ...rawValues, month: mInfo.m, quarter: mInfo.q, timestamp: mInfo.t };
                     const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'monthlyMetrics', state.entryMonth);
                     await setDoc(docRef, dataToSave, { merge: true });
 
                     setMsg(`Dados de ${def.title} guardados com sucesso!`, 'success');
-                    
                     def.fields.forEach(f => { document.getElementById(`input-${f.id}`).value = ''; });
-
                 } catch (err) {
-                    console.error(err);
                     setMsg('Falha ao gravar no Firebase. Verifique sua conexão.', 'error');
                 } finally {
                     btnSave.disabled = false;
