@@ -864,8 +864,12 @@
             reportContainer.style.color = '#334155';
             reportContainer.style.background = '#ffffff';
             reportContainer.style.width = '1000px'; 
-            reportContainer.style.position = 'absolute';
-            reportContainer.style.left = '-9999px';
+            
+            // CORREÇÃO: Em vez de left: -9999px (que gera PDF branco), mantemos na tela mas por trás de tudo
+            reportContainer.style.position = 'fixed';
+            reportContainer.style.top = '0';
+            reportContainer.style.left = '0';
+            reportContainer.style.zIndex = '-1000';
             
             const dateStr = new Date().toLocaleDateString('pt-BR');
             const periodLabel = period === 'YTD' ? 'Acumulado Anual (YTD)' : `${period} (Trimestral)`;
@@ -928,13 +932,22 @@
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
 
-            html2pdf().set(opt).from(reportContainer).save().then(() => {
-                document.body.removeChild(reportContainer);
-                document.getElementById('report-modal').classList.add('hidden');
-                btnGen.innerHTML = '<i data-lucide="download" class="w-5 h-5"></i> BAIXAR RELATÓRIO PDF';
-                btnGen.disabled = false;
-                lucide.createIcons();
-            });
+            // CORREÇÃO: Aguardar 300ms para garantir que o DOM renderizou o HTML perfeitamente antes de gerar o PDF
+            setTimeout(() => {
+                html2pdf().set(opt).from(reportContainer).save().then(() => {
+                    document.body.removeChild(reportContainer);
+                    document.getElementById('report-modal').classList.add('hidden');
+                    btnGen.innerHTML = '<i data-lucide="download" class="w-5 h-5"></i> BAIXAR RELATÓRIO PDF';
+                    btnGen.disabled = false;
+                    lucide.createIcons();
+                }).catch(err => {
+                    console.error("Erro ao gerar PDF:", err);
+                    document.body.removeChild(reportContainer);
+                    btnGen.innerHTML = '<i data-lucide="download" class="w-5 h-5"></i> ERRO. TENTAR NOVAMENTE';
+                    btnGen.disabled = false;
+                    lucide.createIcons();
+                });
+            }, 300);
         }
 
         // --- LÓGICA DO MENU E MODAL ---
