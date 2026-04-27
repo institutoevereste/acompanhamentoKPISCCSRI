@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel de Inteligência CCSRI - Instituto Evereste</title>
+    <title>Painel de Inteligência CCRI - Instituto Evereste</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -39,7 +39,7 @@
             </div>
             
             <h1 class="text-2xl font-black text-slate-800 tracking-tight">Instituto Evereste</h1>
-            <p class="text-sm text-slate-500 mt-2 mb-8 font-medium">CCSRI Data - Acesso Restrito</p>
+            <p class="text-sm text-slate-500 mt-2 mb-8 font-medium">CCRI Data - Acesso Restrito</p>
             
             <div id="login-error" class="hidden mb-6 p-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl font-medium text-left"></div>
 
@@ -65,7 +65,7 @@
                 </div>
                 <div>
                     <h1 class="text-white font-bold text-[15px] tracking-wide">Inst. Evereste</h1>
-                    <p class="text-[11px] text-slate-400 uppercase tracking-widest mt-0.5">CCSRI Data</p>
+                    <p class="text-[11px] text-slate-400 uppercase tracking-widest mt-0.5">CCRI Data</p>
                 </div>
             </div>
             
@@ -121,7 +121,7 @@
                 <div>
                     <label class="block text-sm font-bold text-slate-700 mb-2">Selecione o Escopo do Relatório</label>
                     <select id="report-area" class="w-full bg-slate-50 border border-slate-200 text-slate-700 font-bold rounded-xl p-3.5 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
-                        <option value="global">Visão Global (Resumo de todas as áreas)</option>
+                        <option value="global">Visão Global (Resumo Institucional)</option>
                         <option value="mkt_ig">Mídias: Instagram</option>
                         <option value="mkt_li">Mídias: LinkedIn</option>
                         <option value="mkt_yt">Mídias: YouTube</option>
@@ -172,6 +172,7 @@
         const db = getFirestore(app);
         const appId = 'dashboard-evereste';
 
+        // LISTA DE EMAILS COM PERMISSÃO DE EDIÇÃO
         const AUTHORIZED_EDITORS = [
             'marllon.costa@evereste.org.br',
             'gabrielle.brasil@evereste.org.br'
@@ -310,7 +311,7 @@
             let sum = 0; let count = 0;
             dataArray.forEach(d => {
                 const val = getDocValue(d, kpi);
-                if (val > 0 || val < 0) { sum += val; count++; } // Modificado para aceitar valores = 0 se reportados. Se só sum+=val e val=0 cai no false
+                if (val > 0 || val < 0) { sum += val; count++; }
             });
             return kpi.agg === 'avg' && count > 0 ? sum / count : sum;
         }
@@ -869,7 +870,7 @@
                         <tr>
                             <td style="vertical-align: bottom;">
                                 <h1 style="margin: 0; color: #0f172a; font-size: 28px; font-weight: 900; letter-spacing: -1px;">Instituto Evereste</h1>
-                                <p style="margin: 4px 0 0 0; color: #64748b; font-size: 14px; font-weight: 500;">Painel de Inteligência CCSRI Estratégico</p>
+                                <p style="margin: 4px 0 0 0; color: #64748b; font-size: 14px; font-weight: 500;">Painel de Inteligência CCRI Estratégico</p>
                             </td>
                             <td style="text-align: right; vertical-align: bottom;">
                                 <p style="margin: 0; color: #94a3b8; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Data de Geração</p>
@@ -911,14 +912,14 @@
                     </table>
                     
                     <div style="margin-top: 40px; padding-top: 15px; border-top: 1px solid #e2e8f0; text-align: center;">
-                        <p style="color: #94a3b8; font-size: 11px; font-weight: 500; margin: 0;">Este é um documento oficial emitido pelo Sistema de Acompanhamento de KPIs do CCSRI para 2026.</p>
+                        <p style="color: #94a3b8; font-size: 11px; font-weight: 500; margin: 0;">Este é um documento oficial emitido pelo Sistema de Acompanhamento de KPIs do CCRI para 2026.</p>
                     </div>
                 </div>
             `;
 
             const opt = {
                 margin:       [15, 15, 15, 15],
-                filename:     `Relatorio_CCSRI_${areaId}_${period}.pdf`,
+                filename:     `Relatorio_CCRI_${areaId}_${period}.pdf`,
                 image:        { type: 'jpeg', quality: 1 },
                 html2canvas:  { scale: 2, useCORS: true, logging: false },
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
