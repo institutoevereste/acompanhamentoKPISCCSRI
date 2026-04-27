@@ -281,7 +281,7 @@
                 { id: 's3', title: "Capacitação comunidade", iconName: "graduation-cap", dataKey: "soc_cap", chartType: "line", format: "number", numericTarget: 150, inverseLogic: false, agg: 'sum' },
                 { id: 's4', title: "Nº de projetos e beneficiários atendidos", iconName: "folder-heart", dataKey: "soc_proj", chartType: "bar", format: "percent", numericTarget: 20.0, inverseLogic: false, agg: 'avg' },
                 { id: 's5', title: "Eventos Realizados", iconName: "calendar", dataKey: "soc_evt", chartType: "bar", format: "number", numericTarget: 8, inverseLogic: false, agg: 'sum' },
-                { id: 's6', title: "Peças Publicitárias (PPP)", iconName: "megaphone", dataKey: "soc_ppp", chartType: "bar", format: "number", numericTarget: 0, inverseLogic: false, agg: 'sum' },
+                { id: 's6', title: "Peças Publicitárias (PPP)", iconName: "megaphone", dataKey: "soc_ppp", chartType: "bar", format: "number", numericTarget: 8, inverseLogic: false, agg: 'sum' },
             ]
         };
 
@@ -422,6 +422,7 @@
                 const isSocPppTarget = (k.dataKey === 'soc_ppp');
                 const isAlcTarget = (k.dataKey === 'ig_alc' || (k.dataKeys && k.dataKeys.includes('ig_alc')));
                 const isERTarget = (k.dataKey === 'ig_er' || k.dataKey === 'tk_er');
+                const isDesTxTarget = (k.dataKey === 'des_tx');
 
                 if (isEventTarget) {
                     if (state.isComparativeMode) k.numericTarget = 8;
@@ -448,10 +449,13 @@
                     else if (state.timeRange === 'YTD') k.numericTarget = 1200;
                     else k.numericTarget = 300;
                 }
-                if (isSocPppTarget && activeData) {
-                    const totalSocEvents = getAggregatedValue(activeData, { dataKey: 'soc_evt', agg: 'sum' });
-                    if (state.isComparativeMode) k.numericTarget = totalSocEvents / 4;
-                    else k.numericTarget = totalSocEvents;
+                if (isSocPppTarget) {
+                    if (state.isComparativeMode) k.numericTarget = 8;
+                    else if (state.timeRange === 'YTD') k.numericTarget = 32;
+                    else k.numericTarget = 8;
+                }
+                if (isDesTxTarget) {
+                    k.numericTarget = 80;
                 }
             });
             
@@ -826,13 +830,15 @@
                 const isSocPppTarget = (k.dataKey === 'soc_ppp');
                 const isAlcTarget = (k.dataKey === 'ig_alc' || (k.dataKeys && k.dataKeys.includes('ig_alc')));
                 const isERTarget = (k.dataKey === 'ig_er' || k.dataKey === 'tk_er');
+                const isDesTxTarget = (k.dataKey === 'des_tx');
 
                 if (isEventTarget) k.numericTarget = period === 'YTD' ? 32 : 8;
                 if (isJorTarget) k.numericTarget = period === 'YTD' ? 24 : 6;
                 if (isSocCapTarget) k.numericTarget = period === 'YTD' ? 600 : 150;
                 if (isAlcTarget) k.numericTarget = period === 'YTD' ? 2800000 : 700000;
                 if (isERTarget) k.numericTarget = period === 'YTD' ? 1200 : 300;
-                if (isSocPppTarget) k.numericTarget = getAggregatedValue(periodData, { dataKey: 'soc_evt', agg: 'sum' });
+                if (isSocPppTarget) k.numericTarget = period === 'YTD' ? 32 : 8;
+                if (isDesTxTarget) k.numericTarget = 80;
             });
 
             let tableRows = kpisToReport.map(kpi => {
