@@ -860,4 +860,114 @@
                 `;
             }).join('');
 
-// ... existing HTML string structure from previous answer ...
+            const dateStr = new Date().toLocaleDateString('pt-BR');
+            const periodLabel = period === 'YTD' ? 'Acumulado Anual (YTD)' : `${period} (Trimestral)`;
+
+            const htmlContent = `
+                <div style="padding: 40px; font-family: Helvetica, Arial, sans-serif; color: #1e293b; background: #ffffff;">
+                    <table style="width: 100%; border-bottom: 4px solid #4f46e5; padding-bottom: 20px; margin-bottom: 30px;">
+                        <tr>
+                            <td style="vertical-align: bottom;">
+                                <h1 style="margin: 0; color: #0f172a; font-size: 28px; font-weight: 900; letter-spacing: -1px;">Instituto Evereste</h1>
+                                <p style="margin: 4px 0 0 0; color: #64748b; font-size: 14px; font-weight: 500;">Painel de Inteligência CCSRI Estratégico</p>
+                            </td>
+                            <td style="text-align: right; vertical-align: bottom;">
+                                <p style="margin: 0; color: #94a3b8; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Data de Geração</p>
+                                <p style="margin: 2px 0 0 0; color: #0f172a; font-size: 14px; font-weight: bold;">${dateStr}</p>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <div style="margin-bottom: 30px; background-color: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0;">
+                        <h2 style="margin: 0 0 10px 0; color: #1e293b; font-size: 20px; font-weight: 800;">${reportTitle}</h2>
+                        <table style="width: 100%;">
+                            <tr>
+                                <td style="width: 50%;">
+                                    <span style="color: #64748b; font-size: 11px; font-weight: bold; text-transform: uppercase;">Período Analisado</span><br>
+                                    <span style="color: #0f172a; font-size: 14px; font-weight: 600;">${periodLabel}</span>
+                                </td>
+                                <td style="width: 50%;">
+                                    <span style="color: #64748b; font-size: 11px; font-weight: bold; text-transform: uppercase;">Estado dos Dados</span><br>
+                                    <span style="color: #10b981; font-size: 14px; font-weight: 600;">Sincronizado via Firebase</span>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <h3 style="margin: 0 0 12px 0; color: #0f172a; font-size: 16px; font-weight: bold;">Resultados Consolidados</h3>
+                    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
+                        <thead>
+                            <tr style="background-color: #f1f5f9; border-bottom: 2px solid #cbd5e1;">
+                                <th style="padding: 12px 8px; color: #475569; font-weight: bold; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">Indicador Estratégico (KPI)</th>
+                                <th style="padding: 12px 8px; color: #475569; font-weight: bold; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">Meta Oficial</th>
+                                <th style="padding: 12px 8px; color: #475569; font-weight: bold; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">Resultado Atual</th>
+                                <th style="padding: 12px 8px; color: #475569; font-weight: bold; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">% Atingimento</th>
+                                <th style="padding: 12px 8px; color: #475569; font-weight: bold; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${tableRows}
+                        </tbody>
+                    </table>
+                    
+                    <div style="margin-top: 40px; padding-top: 15px; border-top: 1px solid #e2e8f0; text-align: center;">
+                        <p style="color: #94a3b8; font-size: 11px; font-weight: 500; margin: 0;">Este é um documento oficial emitido pelo Sistema de Acompanhamento de KPIs do CCSRI para 2026.</p>
+                    </div>
+                </div>
+            `;
+
+            const opt = {
+                margin:       [15, 15, 15, 15],
+                filename:     `Relatorio_CCSRI_${areaId}_${period}.pdf`,
+                image:        { type: 'jpeg', quality: 1 },
+                html2canvas:  { scale: 2, useCORS: true, logging: false },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().set(opt).from(htmlContent).save().then(() => {
+                document.getElementById('report-modal').classList.add('hidden');
+                btnGen.innerHTML = '<i data-lucide="download" class="w-5 h-5"></i> BAIXAR RELATÓRIO PDF';
+                btnGen.disabled = false;
+                lucide.createIcons();
+            }).catch(err => {
+                console.error("Erro ao gerar PDF:", err);
+                btnGen.innerHTML = '<i data-lucide="download" class="w-5 h-5"></i> ERRO. TENTAR NOVAMENTE';
+                btnGen.disabled = false;
+                lucide.createIcons();
+            });
+        }
+
+        // --- LÓGICA DO MENU E MODAL ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const mobileBtn = document.getElementById('mobile-menu-btn');
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('sidebar-backdrop');
+            const reportModal = document.getElementById('report-modal');
+
+            function toggleSidebar() {
+                if(!sidebar || !backdrop) return;
+                sidebar.classList.toggle('-translate-x-full');
+                backdrop.classList.toggle('hidden');
+                setTimeout(() => backdrop.classList.toggle('opacity-0'), 10);
+            }
+            if(mobileBtn) mobileBtn.addEventListener('click', toggleSidebar);
+            if(backdrop) backdrop.addEventListener('click', toggleSidebar);
+            document.getElementById('nav-menu').addEventListener('click', (e) => {
+                if (window.innerWidth < 768 && e.target.closest('.tab-btn')) toggleSidebar();
+            });
+
+            document.getElementById('btn-open-report').addEventListener('click', () => {
+                reportModal.classList.remove('hidden');
+            });
+            document.getElementById('btn-close-report').addEventListener('click', () => {
+                reportModal.classList.add('hidden');
+            });
+            document.getElementById('btn-generate-pdf').addEventListener('click', () => {
+                const area = document.getElementById('report-area').value;
+                const period = document.getElementById('report-period').value;
+                generatePDFReport(area, period);
+            });
+        });
+    </script>
+</body>
+</html>
