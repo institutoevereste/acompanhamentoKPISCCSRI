@@ -200,7 +200,7 @@
         ];
 
         const formDefinitions = {
-            ig: { title: 'Seção de Marketing e Publicidade: Instagram', icon: 'instagram', fields: [{ id: 'ig_cpm', label: 'Custo por Mil Impressões (R$)' }, { id: 'ig_er', label: 'Engajamento (Soma Absoluta)' }, { id: 'ig_ctr', label: 'Taxa de Cliques (%)' }, { id: 'ig_alc', label: 'Alcance Total (Absoluto)' }, { id: 'ig_iec', label: 'Índice de Eficiência de Cobertura' }, { id: 'ig_cps', label: 'Custo por seguidor (R$)' }] },
+            ig: { title: 'Seção de Marketing e Publicidade: Instagram', icon: 'instagram', fields: [{ id: 'ig_cpm', label: 'Custo por Mil Impressões (R$)' }, { id: 'ig_er', label: 'Engajamento (Soma Absoluta)' }, { id: 'ig_ctr', label: 'Taxa de Cliques (%)' }, { id: 'ig_alc', label: 'Alcance Total (Absoluto)' }, { id: 'ig_verba', label: 'Verba Total (R$)' }, { id: 'ig_cps', label: 'Custo por seguidor (R$)' }] },
             li: { title: 'Seção de Marketing e Publicidade: LinkedIn', icon: 'linkedin', fields: [{ id: 'li_cpc', label: 'Custo por Click (R$)' }, { id: 'li_cpm', label: 'Custo por Mil Impressões (R$)' }, { id: 'li_cps', label: 'Custo por seguidor (R$)' }] },
             yt: { title: 'Seção de Marketing e Publicidade: YouTube', icon: 'youtube', fields: [{ id: 'yt_pmv', label: 'Porcentagem média de Visualizações (%)' }, { id: 'yt_vvr', label: 'Volume de Visualizações (absoluto)' }] },
             tk: { title: 'Seção de Marketing e Publicidade: TikTok', icon: 'smartphone', fields: [{ id: 'tk_tv', label: 'Total de Visualizações' }, { id: 'tk_er', label: 'Engajamento (Soma Absoluta)' }] },
@@ -212,7 +212,7 @@
         const fallbackMonthlyData = monthsInfo.map(m => ({
             month: m.m, quarter: m.q, timestamp: m.t,
             g_alc:0, g_cpm:0, g_views:0,
-            ig_cpm:0, ig_er:0, ig_ctr:0, ig_alc:0, ig_iec:0, ig_cps:0,
+            ig_cpm:0, ig_er:0, ig_ctr:0, ig_alc:0, ig_verba:0, ig_cps:0,
             li_cpc:0, li_cpm:0, li_cps:0,
             yt_pmv:0, yt_vvr:0,
             tk_tv:0, tk_er:0,
@@ -248,7 +248,7 @@
                     { id: 'i2', title: "Engajamento (Soma)", iconName: "activity", dataKey: "ig_er", chartType: "bar", format: "number", numericTarget: 300, inverseLogic: false, agg: 'sum' },
                     { id: 'i3', title: "Taxa de Cliques", iconName: "mouse-pointer-click", dataKey: "ig_ctr", chartType: "line", format: "percent", numericTarget: 1.88, inverseLogic: false, agg: 'avg' },
                     { id: 'i4', title: "Alcance Total", iconName: "users", dataKey: "ig_alc", chartType: "area", format: "number", numericTarget: 700000, inverseLogic: false, agg: 'sum' },
-                    { id: 'i5', title: "IEC", iconName: "activity", dataKey: "ig_iec", chartType: "bar", format: "number", numericTarget: 6250, inverseLogic: false, agg: 'avg' },
+                    { id: 'i5', title: "Índice de Cobertura (IEC)", iconName: "activity", dataKeys: ["ig_alc", "ig_verba"], chartType: "bar", format: "number", numericTarget: 6250, inverseLogic: false, agg: 'ratio' },
                     { id: 'i6', title: "Custo por seguidor", iconName: "users", dataKey: "ig_cps", chartType: "line", format: "currency", numericTarget: 4.00, inverseLogic: true, agg: 'avg' },
                 ],
                 linkedin: [
@@ -428,44 +428,28 @@
                 kpis = JSON.parse(JSON.stringify(kpiDataByArea[state.selectedArea] || kpiDataByArea['global']));
             }
 
-            // Metas dinâmicas
-            kpis.forEach(k => {
-                const isEventTarget = (k.dataKey === 'soc_evt' || (k.dataKeys && k.dataKeys.includes('soc_evt')));
-                const isJorTarget = (k.dataKey === 'jor_mat' || (k.dataKeys && k.dataKeys.includes('jor_mat')));
-                const isSocCapTarget = (k.dataKey === 'soc_cap' || (k.dataKeys && k.dataKeys.includes('soc_cap')));
-                const isSocPppTarget = (k.dataKey === 'soc_ppp');
-                const isAlcTarget = (k.dataKey === 'ig_alc' || (k.dataKeys && k.dataKeys.includes('ig_alc')));
-                const isERTarget = (k.dataKey === 'ig_er' || k.dataKey === 'tk_er');
+            const isYTD = state.timeRange === 'YTD' && !state.isComparativeMode;
 
-                if (isEventTarget) {
-                    if (state.isComparativeMode) k.numericTarget = 8;
-                    else if (state.timeRange === 'YTD') k.numericTarget = 32;
-                    else k.numericTarget = 8;
+            // Metas estritas isoladas por ID do KPI para evitar vazamentos de regras
+            kpis.forEach(k => {
+                if (k.id === 'g7' || k.id === 's5') {
+                    k.numericTarget = state.isComparativeMode ? 8 : (isYTD ? 32 : 8);
                 }
-                if (isJorTarget) {
-                    if (state.isComparativeMode) k.numericTarget = 6; 
-                    else if (state.timeRange === 'YTD') k.numericTarget = 24;
-                    else k.numericTarget = 6;
+                if (k.id === 'g4' || k.id === 'j1') {
+                    k.numericTarget = state.isComparativeMode ? 6 : (isYTD ? 24 : 6);
                 }
-                if (isSocCapTarget) {
-                    if (state.isComparativeMode) k.numericTarget = 150; 
-                    else if (state.timeRange === 'YTD') k.numericTarget = 600;
-                    else k.numericTarget = 150;
+                if (k.id === 's3') {
+                    k.numericTarget = state.isComparativeMode ? 150 : (isYTD ? 600 : 150);
                 }
-                if (isAlcTarget) {
-                    if (state.isComparativeMode) k.numericTarget = 700000; 
-                    else if (state.timeRange === 'YTD') k.numericTarget = 2800000;
-                    else k.numericTarget = 700000;
+                if (k.id === 'i4') {
+                    k.numericTarget = state.isComparativeMode ? 700000 : (isYTD ? 2800000 : 700000);
                 }
-                if (isERTarget) {
-                    if (state.isComparativeMode) k.numericTarget = 300; 
-                    else if (state.timeRange === 'YTD') k.numericTarget = 1200;
-                    else k.numericTarget = 300;
+                if (k.id === 'i2' || k.id === 't2') {
+                    k.numericTarget = state.isComparativeMode ? 300 : (isYTD ? 1200 : 300);
                 }
-                if (isSocPppTarget) {
-                    if (state.isComparativeMode) k.numericTarget = 8;
-                    else if (state.timeRange === 'YTD') k.numericTarget = 32;
-                    else k.numericTarget = 8;
+                if (k.id === 's6' && activeData) {
+                    const totalSocEvents = getAggregatedValue(activeData, { dataKey: 'soc_evt', agg: 'sum' });
+                    k.numericTarget = state.isComparativeMode ? totalSocEvents / 4 : totalSocEvents;
                 }
             });
             
@@ -570,6 +554,11 @@
                 if (achv.status === 'red') { farolColor = 'text-red-500'; farolBg = 'bg-red-50 border-red-200'; iconStatus = 'x-circle'; }
                 if (achv.status === 'yellow') { farolColor = 'text-amber-500'; farolBg = 'bg-amber-50 border-amber-200'; iconStatus = 'alert-circle'; }
 
+                let aggLabel = 'Valor';
+                if (kpi.agg === 'sum') aggLabel = 'Total Absoluto';
+                else if (kpi.agg === 'avg') aggLabel = 'Média do Período';
+                else if (kpi.agg === 'ratio') aggLabel = 'Índice Calculado';
+
                 let topBadge = '';
                 let footerStats = '';
 
@@ -610,8 +599,8 @@
                         <div class="mt-4">
                             <div class="flex items-end gap-2">
                                 <h2 class="text-3xl font-black text-slate-800 tracking-tight leading-none">${valFormatted}</h2>
-                                <span class="text-xs font-semibold text-slate-400 mb-1">Média/Soma</span>
                             </div>
+                            <span class="text-xs font-semibold text-slate-400 mb-1">${aggLabel}</span>
                             ${footerStats}
                         </div>
                     </div>
@@ -848,20 +837,19 @@
             }
             
             kpisToReport = JSON.parse(JSON.stringify(kpisToReport));
+            
             kpisToReport.forEach(k => {
-                const isEventTarget = (k.dataKey === 'soc_evt' || (k.dataKeys && k.dataKeys.includes('soc_evt')));
-                const isJorTarget = (k.dataKey === 'jor_mat' || (k.dataKeys && k.dataKeys.includes('jor_mat')));
-                const isSocCapTarget = (k.dataKey === 'soc_cap' || (k.dataKeys && k.dataKeys.includes('soc_cap')));
-                const isSocPppTarget = (k.dataKey === 'soc_ppp');
-                const isAlcTarget = (k.dataKey === 'ig_alc' || (k.dataKeys && k.dataKeys.includes('ig_alc')));
-                const isERTarget = (k.dataKey === 'ig_er' || k.dataKey === 'tk_er');
-
-                if (isEventTarget) k.numericTarget = period === 'YTD' ? 32 : 8;
-                if (isJorTarget) k.numericTarget = period === 'YTD' ? 24 : 6;
-                if (isSocCapTarget) k.numericTarget = period === 'YTD' ? 600 : 150;
-                if (isAlcTarget) k.numericTarget = period === 'YTD' ? 2800000 : 700000;
-                if (isERTarget) k.numericTarget = period === 'YTD' ? 1200 : 300;
-                if (isSocPppTarget) k.numericTarget = period === 'YTD' ? 32 : 8;
+                const isYTD = period === 'YTD';
+                
+                if (k.id === 'g7' || k.id === 's5') k.numericTarget = isYTD ? 32 : 8;
+                if (k.id === 'g4' || k.id === 'j1') k.numericTarget = isYTD ? 24 : 6;
+                if (k.id === 's3') k.numericTarget = isYTD ? 600 : 150;
+                if (k.id === 'i4') k.numericTarget = isYTD ? 2800000 : 700000;
+                if (k.id === 'i2' || k.id === 't2') k.numericTarget = isYTD ? 1200 : 300;
+                
+                if (k.id === 's6') {
+                    k.numericTarget = getAggregatedValue(periodData, { dataKey: 'soc_evt', agg: 'sum' });
+                }
             });
 
             let tableRows = kpisToReport.map(kpi => {
@@ -947,7 +935,7 @@
                             <tr style="background-color: #f1f5f9; border-bottom: 2px solid #cbd5e1;">
                                 <th style="padding: 12px 8px; color: #475569; font-weight: bold; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">Indicador Estratégico (KPI)</th>
                                 <th style="padding: 12px 8px; color: #475569; font-weight: bold; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">Meta Oficial</th>
-                                <th style="padding: 12px 8px; color: #475569; font-weight: bold; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">Resultado Atual</th>
+                                <th style="padding: 12px 8px; color: #475569; font-weight: bold; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">Resultado do Período</th>
                                 <th style="padding: 12px 8px; color: #475569; font-weight: bold; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">% Atingimento</th>
                                 <th style="padding: 12px 8px; color: #475569; font-weight: bold; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">Status</th>
                             </tr>
