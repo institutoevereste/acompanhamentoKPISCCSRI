@@ -204,7 +204,7 @@
             li: { title: 'Seção de Marketing e Publicidade: LinkedIn', icon: 'linkedin', fields: [{ id: 'li_cpc', label: 'Custo por Click (R$)' }, { id: 'li_cpm', label: 'Custo por Mil Impressões (R$)' }, { id: 'li_cps', label: 'Custo por seguidor (R$)' }] },
             yt: { title: 'Seção de Marketing e Publicidade: YouTube', icon: 'youtube', fields: [{ id: 'yt_pmv', label: 'Porcentagem média de Visualizações (%)' }, { id: 'yt_vvr', label: 'Volume de Visualizações (absoluto)' }] },
             tk: { title: 'Seção de Marketing e Publicidade: TikTok', icon: 'smartphone', fields: [{ id: 'tk_tv', label: 'Total de Visualizações' }, { id: 'tk_er', label: 'Engajamento (Soma Absoluta)' }] },
-            des: { title: 'Seção de Design e Comunicação Visual', icon: 'pen-tool', fields: [{ id: 'des_sol', label: 'Qtd. de Designs Solicitados' }, { id: 'des_ate', label: 'Qtd. de Designs Atendidos' }, { id: 'des_tx', label: 'Taxa de Atendimento (%)' }] },
+            des: { title: 'Seção de Design e Comunicação Visual', icon: 'pen-tool', fields: [{ id: 'des_sol', label: 'Qtd. de Designs Solicitados' }, { id: 'des_ate', label: 'Qtd. de Designs Atendidos' }] },
             jor: { title: 'Unidade de Jornalismo e Conteúdo', icon: 'file-text', fields: [{ id: 'jor_mat', label: 'Matérias Publicadas (Portal+blog)' }, { id: 'jor_views', label: 'Visualizações por Matéria' }, { id: 'jor_ret', label: 'Taxa de Retenção de Leitura (%)' }] },
             soc: { title: 'Seção de Iniciativas Socioambientais', icon: 'recycle', fields: [{ id: 'soc_res', label: '% Resíduos reciclados' }, { id: 'soc_colab', label: '% Colaboradores capacitados' }, { id: 'soc_cap', label: 'Capacitação comunidade' }, { id: 'soc_proj', label: 'Nº de projetos e beneficiários atendidos (+%)' }, { id: 'soc_evt', label: 'Eventos Realizados' }, { id: 'soc_ppp', label: 'Peças Publicitárias (PPP)' }] }
         };
@@ -216,7 +216,7 @@
             li_cpc:0, li_cpm:0, li_cps:0,
             yt_pmv:0, yt_vvr:0,
             tk_tv:0, tk_er:0,
-            des_sol:0, des_ate:0, des_tx:0,
+            des_sol:0, des_ate:0,
             jor_mat:0, jor_views:0, jor_ret:0,
             soc_res:0, soc_colab:0, soc_cap:0, soc_proj:0, soc_evt:0, soc_ppp:0
         }));
@@ -267,8 +267,7 @@
             },
             des: [
                 { id: 'd1', title: "Designs Solicitados", iconName: "inbox", dataKey: "des_sol", chartType: "bar", format: "number", numericTarget: 0, inverseLogic: false, agg: 'sum' },
-                { id: 'd2', title: "Designs Atendidos", iconName: "check-square", dataKey: "des_ate", chartType: "bar", format: "number", numericTarget: 0, inverseLogic: false, agg: 'sum' },
-                { id: 'd3', title: "Taxa de Atendimento", iconName: "pie-chart", dataKey: "des_tx", chartType: "area", format: "percent", numericTarget: 80.0, inverseLogic: false, agg: 'avg' }
+                { id: 'd2', title: "Designs Atendidos", iconName: "check-square", dataKey: "des_ate", chartType: "bar", format: "number", numericTarget: 0, inverseLogic: false, agg: 'sum' }
             ],
             jor: [
                 { id: 'j1', title: "Qtd. Matérias Publicadas", iconName: "file-text", dataKey: "jor_mat", chartType: "bar", format: "number", numericTarget: 6, inverseLogic: false, agg: 'sum' },
@@ -281,7 +280,7 @@
                 { id: 's3', title: "Capacitação comunidade", iconName: "graduation-cap", dataKey: "soc_cap", chartType: "line", format: "number", numericTarget: 150, inverseLogic: false, agg: 'sum' },
                 { id: 's4', title: "Nº de projetos e beneficiários atendidos", iconName: "folder-heart", dataKey: "soc_proj", chartType: "bar", format: "percent", numericTarget: 20.0, inverseLogic: false, agg: 'avg' },
                 { id: 's5', title: "Eventos Realizados", iconName: "calendar", dataKey: "soc_evt", chartType: "bar", format: "number", numericTarget: 8, inverseLogic: false, agg: 'sum' },
-                { id: 's6', title: "Peças Publicitárias (PPP)", iconName: "megaphone", dataKey: "soc_ppp", chartType: "bar", format: "number", numericTarget: 8, inverseLogic: false, agg: 'sum' },
+                { id: 's6', title: "Peças Publicitárias (PPP)", iconName: "megaphone", dataKey: "soc_ppp", chartType: "bar", format: "number", numericTarget: 0, inverseLogic: false, agg: 'sum' },
             ]
         };
 
@@ -422,7 +421,7 @@
                 const isSocPppTarget = (k.dataKey === 'soc_ppp');
                 const isAlcTarget = (k.dataKey === 'ig_alc' || (k.dataKeys && k.dataKeys.includes('ig_alc')));
                 const isERTarget = (k.dataKey === 'ig_er' || k.dataKey === 'tk_er');
-                const isDesTxTarget = (k.dataKey === 'des_tx');
+                const isDesAteTarget = (k.dataKey === 'des_ate' || (k.dataKeys && k.dataKeys.includes('des_ate')));
 
                 if (isEventTarget) {
                     if (state.isComparativeMode) k.numericTarget = 8;
@@ -449,13 +448,16 @@
                     else if (state.timeRange === 'YTD') k.numericTarget = 1200;
                     else k.numericTarget = 300;
                 }
-                if (isSocPppTarget) {
-                    if (state.isComparativeMode) k.numericTarget = 8;
-                    else if (state.timeRange === 'YTD') k.numericTarget = 32;
-                    else k.numericTarget = 8;
+                if (isSocPppTarget && activeData) {
+                    const totalSocEvents = getAggregatedValue(activeData, { dataKey: 'soc_evt', agg: 'sum' });
+                    if (state.isComparativeMode) k.numericTarget = totalSocEvents / 4;
+                    else k.numericTarget = totalSocEvents;
                 }
-                if (isDesTxTarget) {
-                    k.numericTarget = 80;
+                if (isDesAteTarget && activeData) {
+                    // A meta de "Designs Atendidos" é automaticamente 80% do total de "Designs Solicitados" daquele período
+                    const totalSol = getAggregatedValue(activeData, { dataKey: 'des_sol', agg: 'sum' });
+                    if (state.isComparativeMode) k.numericTarget = (totalSol * 0.8) / 4;
+                    else k.numericTarget = totalSol * 0.8;
                 }
             });
             
@@ -830,7 +832,7 @@
                 const isSocPppTarget = (k.dataKey === 'soc_ppp');
                 const isAlcTarget = (k.dataKey === 'ig_alc' || (k.dataKeys && k.dataKeys.includes('ig_alc')));
                 const isERTarget = (k.dataKey === 'ig_er' || k.dataKey === 'tk_er');
-                const isDesTxTarget = (k.dataKey === 'des_tx');
+                const isDesAteTarget = (k.dataKey === 'des_ate' || (k.dataKeys && k.dataKeys.includes('des_ate')));
 
                 if (isEventTarget) k.numericTarget = period === 'YTD' ? 32 : 8;
                 if (isJorTarget) k.numericTarget = period === 'YTD' ? 24 : 6;
@@ -838,7 +840,11 @@
                 if (isAlcTarget) k.numericTarget = period === 'YTD' ? 2800000 : 700000;
                 if (isERTarget) k.numericTarget = period === 'YTD' ? 1200 : 300;
                 if (isSocPppTarget) k.numericTarget = period === 'YTD' ? 32 : 8;
-                if (isDesTxTarget) k.numericTarget = 80;
+                
+                if (isDesAteTarget) {
+                    const totalSol = getAggregatedValue(periodData, { dataKey: 'des_sol', agg: 'sum' });
+                    k.numericTarget = totalSol * 0.8;
+                }
             });
 
             let tableRows = kpisToReport.map(kpi => {
