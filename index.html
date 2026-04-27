@@ -200,13 +200,13 @@
         ];
 
         const formDefinitions = {
-            ig: { title: 'Mkt e Publicidade: Instagram', icon: 'instagram', fields: [{ id: 'ig_cpm', label: 'Custo por Mil Impressões (R$)' }, { id: 'ig_er', label: 'Engajamento (Soma Absoluta)' }, { id: 'ig_ctr', label: 'Taxa de Cliques (%)' }, { id: 'ig_alc', label: 'Alcance Total (Absoluto)' }, { id: 'ig_iec', label: 'Índice de Eficiência de Cobertura' }, { id: 'ig_cps', label: 'Custo por seguidor (R$)' }] },
-            li: { title: 'Mkt e Publicidade: LinkedIn', icon: 'linkedin', fields: [{ id: 'li_cpc', label: 'Custo por Click (R$)' }, { id: 'li_cpm', label: 'Custo por Mil Impressões (R$)' }, { id: 'li_cps', label: 'Custo por seguidor (R$)' }] },
-            yt: { title: 'Mkt e Publicidade: YouTube', icon: 'youtube', fields: [{ id: 'yt_pmv', label: 'Porcentagem média de Visualizações (%)' }, { id: 'yt_vvr', label: 'Volume de Visualizações (absoluto)' }] },
-            tk: { title: 'Mkt e Publicidade: TikTok', icon: 'smartphone', fields: [{ id: 'tk_tv', label: 'Total de Visualizações' }, { id: 'tk_er', label: 'Engajamento (Soma Absoluta)' }] },
-            des: { title: 'Design e Comunicação Visual', icon: 'pen-tool', fields: [{ id: 'des_sol', label: 'Qtd. de Designs Solicitados' }, { id: 'des_ate', label: 'Qtd. de Designs Atendidos' }, { id: 'des_tx', label: 'Taxa de Atendimento (%)' }] },
+            ig: { title: 'Seção de Marketing e Publicidade: Instagram', icon: 'instagram', fields: [{ id: 'ig_cpm', label: 'Custo por Mil Impressões (R$)' }, { id: 'ig_er', label: 'Engajamento (Soma Absoluta)' }, { id: 'ig_ctr', label: 'Taxa de Cliques (%)' }, { id: 'ig_alc', label: 'Alcance Total (Absoluto)' }, { id: 'ig_iec', label: 'Índice de Eficiência de Cobertura' }, { id: 'ig_cps', label: 'Custo por seguidor (R$)' }] },
+            li: { title: 'Seção de Marketing e Publicidade: LinkedIn', icon: 'linkedin', fields: [{ id: 'li_cpc', label: 'Custo por Click (R$)' }, { id: 'li_cpm', label: 'Custo por Mil Impressões (R$)' }, { id: 'li_cps', label: 'Custo por seguidor (R$)' }] },
+            yt: { title: 'Seção de Marketing e Publicidade: YouTube', icon: 'youtube', fields: [{ id: 'yt_pmv', label: 'Porcentagem média de Visualizações (%)' }, { id: 'yt_vvr', label: 'Volume de Visualizações (absoluto)' }] },
+            tk: { title: 'Seção de Marketing e Publicidade: TikTok', icon: 'smartphone', fields: [{ id: 'tk_tv', label: 'Total de Visualizações' }, { id: 'tk_er', label: 'Engajamento (Soma Absoluta)' }] },
+            des: { title: 'Seção de Design e Comunicação Visual', icon: 'pen-tool', fields: [{ id: 'des_sol', label: 'Qtd. de Designs Solicitados' }, { id: 'des_ate', label: 'Qtd. de Designs Atendidos' }, { id: 'des_tx', label: 'Taxa de Atendimento (%)' }] },
             jor: { title: 'Unidade de Jornalismo e Conteúdo', icon: 'file-text', fields: [{ id: 'jor_mat', label: 'Matérias Publicadas (Portal+blog)' }, { id: 'jor_views', label: 'Visualizações por Matéria' }, { id: 'jor_ret', label: 'Taxa de Retenção de Leitura (%)' }] },
-            soc: { title: 'Iniciativas Socioambientais', icon: 'recycle', fields: [{ id: 'soc_res', label: '% Resíduos reciclados' }, { id: 'soc_colab', label: '% Colaboradores capacitados' }, { id: 'soc_cap', label: 'Capacitação comunidade' }, { id: 'soc_proj', label: 'Nº de projetos e beneficiários atendidos (+%)' }, { id: 'soc_evt', label: 'Eventos Realizados' }, { id: 'soc_ppp', label: 'Peças Publicitárias (PPP)' }] }
+            soc: { title: 'Seção de Iniciativas Socioambientais', icon: 'recycle', fields: [{ id: 'soc_res', label: '% Resíduos reciclados' }, { id: 'soc_colab', label: '% Colaboradores capacitados' }, { id: 'soc_cap', label: 'Capacitação comunidade' }, { id: 'soc_proj', label: 'Nº de projetos e beneficiários atendidos (+%)' }, { id: 'soc_evt', label: 'Eventos Realizados' }, { id: 'soc_ppp', label: 'Peças Publicitárias (PPP)' }] }
         };
 
         const fallbackMonthlyData = monthsInfo.map(m => ({
@@ -287,10 +287,10 @@
 
         const areasList = [
             { id: 'global', name: 'Visão Global' },
-            { id: 'mkt', name: 'Marketing e Publicidade' },
-            { id: 'des', name: 'Design e Comunicação' },
-            { id: 'jor', name: 'Jornalismo e Conteúdo' },
-            { id: 'soc', name: 'Iniciativas Socioambientais' }
+            { id: 'mkt', name: 'Seção de Marketing e Publicidade' },
+            { id: 'des', name: 'Seção de Design e Comunicação Visual' },
+            { id: 'jor', name: 'Unidade de Jornalismo e Conteúdo' },
+            { id: 'soc', name: 'Seção de Iniciativas Socioambientais' }
         ];
 
         function getDocValue(d, kpi) {
@@ -811,10 +811,10 @@
                 const net = areaId.split('_')[1];
                 const netMap = { 'ig': 'instagram', 'li': 'linkedin', 'yt': 'youtube', 'tk': 'tiktok' };
                 kpisToReport = kpiDataByArea.mkt[netMap[net]];
-                reportTitle = `Marketing e Publicidade: ${netMap[net].charAt(0).toUpperCase() + netMap[net].slice(1)}`;
+                reportTitle = `Seção de Marketing e Publicidade: ${netMap[net].charAt(0).toUpperCase() + netMap[net].slice(1)}`;
             } else {
                 kpisToReport = kpiDataByArea[areaId];
-                const areaNames = { 'jor': 'Unidade de Jornalismo e Conteúdo', 'soc': 'Iniciativas Socioambientais', 'des': 'Design e Comunicação Visual' };
+                const areaNames = { 'jor': 'Unidade de Jornalismo e Conteúdo', 'soc': 'Seção de Iniciativas Socioambientais', 'des': 'Seção de Design e Comunicação Visual' };
                 reportTitle = `CCRI: ${areaNames[areaId]}`;
             }
             
