@@ -199,8 +199,9 @@
             { m: 'Out', q: 'Q4', t: 10 }, { m: 'Nov', q: 'Q4', t: 11 }, { m: 'Dez', q: 'Q4', t: 12 }
         ];
 
+        // Rótulos e formulários foram atualizados para clarificar que a Verba é um input.
         const formDefinitions = {
-            ig: { title: 'Seção de Marketing e Publicidade: Instagram', icon: 'instagram', fields: [{ id: 'ig_cpm', label: 'Custo por Mil Impressões (R$)' }, { id: 'ig_er', label: 'Engajamento (Soma Absoluta)' }, { id: 'ig_ctr', label: 'Taxa de Cliques (%)' }, { id: 'ig_alc', label: 'Alcance Total (Absoluto)' }, { id: 'ig_verba', label: 'Verba Total (R$)' }, { id: 'ig_cps', label: 'Custo por seguidor (R$)' }] },
+            ig: { title: 'Seção de Marketing e Publicidade: Instagram', icon: 'instagram', fields: [{ id: 'ig_cpm', label: 'Custo por Mil Impressões (R$)' }, { id: 'ig_er', label: 'Engajamento (Soma Absoluta)' }, { id: 'ig_ctr', label: 'Taxa de Cliques (%)' }, { id: 'ig_alc', label: 'Alcance Total (Absoluto)' }, { id: 'ig_verba', label: 'Verba Utilizada (Para cálculo do IEC R$)' }, { id: 'ig_cps', label: 'Custo por seguidor (R$)' }] },
             li: { title: 'Seção de Marketing e Publicidade: LinkedIn', icon: 'linkedin', fields: [{ id: 'li_cpc', label: 'Custo por Click (R$)' }, { id: 'li_cpm', label: 'Custo por Mil Impressões (R$)' }, { id: 'li_cps', label: 'Custo por seguidor (R$)' }] },
             yt: { title: 'Seção de Marketing e Publicidade: YouTube', icon: 'youtube', fields: [{ id: 'yt_pmv', label: 'Porcentagem média de Visualizações (%)' }, { id: 'yt_vvr', label: 'Volume de Visualizações (absoluto)' }] },
             tk: { title: 'Seção de Marketing e Publicidade: TikTok', icon: 'smartphone', fields: [{ id: 'tk_tv', label: 'Total de Visualizações' }, { id: 'tk_er', label: 'Engajamento (Soma Absoluta)' }] },
@@ -248,7 +249,7 @@
                     { id: 'i2', title: "Engajamento (Soma)", iconName: "activity", dataKey: "ig_er", chartType: "bar", format: "number", numericTarget: 300, inverseLogic: false, agg: 'sum' },
                     { id: 'i3', title: "Taxa de Cliques", iconName: "mouse-pointer-click", dataKey: "ig_ctr", chartType: "line", format: "percent", numericTarget: 1.88, inverseLogic: false, agg: 'avg' },
                     { id: 'i4', title: "Alcance Total", iconName: "users", dataKey: "ig_alc", chartType: "area", format: "number", numericTarget: 700000, inverseLogic: false, agg: 'sum' },
-                    { id: 'i5', title: "Índice de Cobertura (IEC)", iconName: "activity", dataKeys: ["ig_alc", "ig_verba"], chartType: "bar", format: "number", numericTarget: 6250, inverseLogic: false, agg: 'ratio' },
+                    { id: 'i5', title: "Índice de Eficiência de Cobertura (IEC)", iconName: "activity", dataKeys: ["ig_alc", "ig_verba"], chartType: "bar", format: "number", numericTarget: 6250, inverseLogic: false, agg: 'ratio' },
                     { id: 'i6', title: "Custo por seguidor", iconName: "users", dataKey: "ig_cps", chartType: "line", format: "currency", numericTarget: 4.00, inverseLogic: true, agg: 'avg' },
                 ],
                 linkedin: [
@@ -430,23 +431,15 @@
 
             const isYTD = state.timeRange === 'YTD' && !state.isComparativeMode;
 
-            // Metas estritas isoladas por ID do KPI para evitar vazamentos de regras
+            // Uso do ID específico de cada KPI para isolamento total da injeção de metas
             kpis.forEach(k => {
-                if (k.id === 'g7' || k.id === 's5') {
-                    k.numericTarget = state.isComparativeMode ? 8 : (isYTD ? 32 : 8);
-                }
-                if (k.id === 'g4' || k.id === 'j1') {
-                    k.numericTarget = state.isComparativeMode ? 6 : (isYTD ? 24 : 6);
-                }
-                if (k.id === 's3') {
-                    k.numericTarget = state.isComparativeMode ? 150 : (isYTD ? 600 : 150);
-                }
-                if (k.id === 'i4') {
-                    k.numericTarget = state.isComparativeMode ? 700000 : (isYTD ? 2800000 : 700000);
-                }
-                if (k.id === 'i2' || k.id === 't2') {
-                    k.numericTarget = state.isComparativeMode ? 300 : (isYTD ? 1200 : 300);
-                }
+                if (k.id === 'g7' || k.id === 's5') k.numericTarget = state.isComparativeMode ? 8 : (isYTD ? 32 : 8);
+                if (k.id === 'g4' || k.id === 'j1') k.numericTarget = state.isComparativeMode ? 6 : (isYTD ? 24 : 6);
+                if (k.id === 's3') k.numericTarget = state.isComparativeMode ? 150 : (isYTD ? 600 : 150);
+                if (k.id === 'i4' || k.id === 'g1') k.numericTarget = state.isComparativeMode ? 700000 : (isYTD ? 2800000 : 700000);
+                if (k.id === 'i2' || k.id === 't2') k.numericTarget = state.isComparativeMode ? 300 : (isYTD ? 1200 : 300);
+                if (k.id === 'g3') k.numericTarget = state.isComparativeMode ? 40000 : (isYTD ? 160000 : 40000);
+                
                 if (k.id === 's6' && activeData) {
                     const totalSocEvents = getAggregatedValue(activeData, { dataKey: 'soc_evt', agg: 'sum' });
                     k.numericTarget = state.isComparativeMode ? totalSocEvents / 4 : totalSocEvents;
@@ -557,7 +550,7 @@
                 let aggLabel = 'Valor';
                 if (kpi.agg === 'sum') aggLabel = 'Total Absoluto';
                 else if (kpi.agg === 'avg') aggLabel = 'Média do Período';
-                else if (kpi.agg === 'ratio') aggLabel = 'Índice Calculado';
+                else if (kpi.agg === 'ratio') aggLabel = 'Índice Calculado / Taxa';
 
                 let topBadge = '';
                 let footerStats = '';
@@ -844,8 +837,9 @@
                 if (k.id === 'g7' || k.id === 's5') k.numericTarget = isYTD ? 32 : 8;
                 if (k.id === 'g4' || k.id === 'j1') k.numericTarget = isYTD ? 24 : 6;
                 if (k.id === 's3') k.numericTarget = isYTD ? 600 : 150;
-                if (k.id === 'i4') k.numericTarget = isYTD ? 2800000 : 700000;
+                if (k.id === 'i4' || k.id === 'g1') k.numericTarget = isYTD ? 5600000 : 1400000;
                 if (k.id === 'i2' || k.id === 't2') k.numericTarget = isYTD ? 1200 : 300;
+                if (k.id === 'g3') k.numericTarget = isYTD ? 160000 : 40000;
                 
                 if (k.id === 's6') {
                     k.numericTarget = getAggregatedValue(periodData, { dataKey: 'soc_evt', agg: 'sum' });
